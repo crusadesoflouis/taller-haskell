@@ -29,22 +29,57 @@ foldProp casoVar casoNot casoAnd casoOr casoImpl prop = case prop of
 
 showVar s = s
 showNot p = '\172' : p
-showAnd p q = p ++ ('\8743' : q)
-showOr p q = p ++ ('\8744' : q)
-showImpl p q = p ++ ('\8835' : q)
+showAnd p q = '(':p ++ (" \8743 " ++ q ++ ")")
+showOr p q = '(':p ++ (" \8744 " ++ q ++ ")")
+showImpl p q = '(':p ++ (" \8835 " ++ q ++ ")")
 
 instance Show Proposition where
   show = foldProp showVar showNot showAnd showOr showImpl
 --Códigos Unicode para simbolitos por si hay problemas de codificación:  \172 not, \8835 implica, \8743 and , \8744 or.
   
 assignTrue :: [String] -> Assignment
-assignTrue = undefined
+assignTrue xs = (\ x -> elem x xs) 
+
+evalVar ::  Assignment -> String -> Bool
+evalVar a s = a s
+
+-- flip
+--evalVar :: String -> Assignment -> Bool
+--evalVar s  a = a s
+
+evalNot :: Bool -> Bool
+evalNot = (not)  
+
+evalAnd :: Bool -> Bool -> Bool
+evalAnd = (&&) 
+
+evalOr :: Bool -> Bool -> Bool
+evalOr = (||) 
+
+evalImpl :: Bool -> Bool -> Bool
+evalImpl = (\p q -> not p || (p && q)) 
 
 eval :: Assignment -> Proposition -> Bool
-eval = undefined
+eval a prop = foldProp (evalVar a) evalNot evalAnd evalOr evalImpl prop 
+
+idVal :: String -> Proposition
+idVal s = Var s
+
+idNot :: Proposition -> Proposition
+idNot p = Not p
+
+idAnd :: Proposition -> Proposition -> Proposition
+idAnd p q = And p q
+
+idOr :: Proposition -> Proposition -> Proposition
+idOr p q = Or p q
+
+evalImplProp :: Proposition -> Proposition -> Proposition
+evalImplProp = (\p q -> Or (Not p) (And p q)) 
 
 elimImpl :: Proposition -> Proposition
-elimImpl = undefined
+elimImpl prop = foldProp idVal idNot idAnd idOr evalImplProp prop
+
 
 negateProp :: Proposition -> Proposition
 negateProp = undefined
@@ -109,6 +144,7 @@ testsEj4 = test [
   ]
 
 testsEj5 = test [
+  eval (assignTrue ["p","q"]) (Impl (And (Var "p") (Var "r")) (And (Not (Var "q")) (Var "q"))) ~=?  eval (assignTrue ["p","q"]) (elimImpl(Impl (And (Var "p") (Var "r")) (And (Not (Var "q")) (Var "q")))),
   Var "q" ~=?  negateProp (Not $ Var "q"),
   Var "p" ~=?  nnf (Not $ Not $ Var "p")
   ]
