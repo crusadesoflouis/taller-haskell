@@ -56,12 +56,14 @@ evalAnd = (&&)
 evalOr :: Bool -> Bool -> Bool
 evalOr = (||) 
 
+-- Chequeado con tabla de verdad
 evalImpl :: Bool -> Bool -> Bool
 evalImpl = (\p q -> not p || (p && q)) 
 
 eval :: Assignment -> Proposition -> Bool
 eval a prop = foldProp (evalVar a) evalNot evalAnd evalOr evalImpl prop 
 
+-- Estos los hice porque no se como se haría una función identidad genérica en estos casos
 idVal :: String -> Proposition
 idVal s = Var s
 
@@ -74,12 +76,28 @@ idAnd p q = And p q
 idOr :: Proposition -> Proposition -> Proposition
 idOr p q = Or p q
 
+-- No me gusta el nombre, cambienlo tranquilamente
 evalImplProp :: Proposition -> Proposition -> Proposition
 evalImplProp = (\p q -> Or (Not p) (And p q)) 
 
 elimImpl :: Proposition -> Proposition
 elimImpl prop = foldProp idVal idNot idAnd idOr evalImplProp prop
 
+-- Este esta totalmente mal.
+negateVal :: String -> Proposition
+negateVal s = Not (Var s)
+
+negateNot :: Proposition -> Proposition
+negateNot p = p
+
+negateAnd :: Proposition -> Proposition -> Proposition
+negateAnd p q = Or p q
+
+negateOr :: Proposition -> Proposition -> Proposition
+negateOr p q = And p q
+
+negateImpl :: Proposition -> Proposition -> Proposition
+negateImpl p q = And p q
 
 negateProp :: Proposition -> Proposition
 negateProp = undefined
@@ -87,20 +105,37 @@ negateProp = undefined
 nnf :: Proposition -> Proposition
 nnf = undefined
 
-vars :: Proposition -> [String]
-vars = undefined
+varsVar :: String -> [String]
+varsVar s = s:[]
 
+varsNot :: [String] -> [String]
+varsNot xs = xs
+
+-- Estas tres claramente pueden ser las mismas, nub es una funcion de Data.List, saca repetidos.
+varsAnd :: [String] -> [String] -> [String]
+varsAnd xs ys = nub (xs ++ ys)
+
+varsOr :: [String] -> [String] -> [String]
+varsOr xs ys = nub (xs ++ ys)
+
+varsImpl :: [String] -> [String] -> [String]
+varsImpl xs ys = nub (xs ++ ys)
+
+vars :: Proposition -> [String]
+vars prop = foldProp varsVar varsNot varsAnd varsOr varsImpl prop
+
+-- Esto no se si se puede, pero en el pdf dice que podemos usar Data.List y es una funcion de ahi.
 parts :: [a] -> [[a]]
-parts = undefined
+parts = subsequences
 
 sat :: Proposition -> [[String]]
-sat = undefined
+sat prop = filter ((flip (eval . assignTrue)) prop) (parts (vars prop))
 
 satisfiable :: Proposition -> Bool
-satisfiable = undefined
+satisfiable prop = length (sat prop) > 0
 
 tautology :: Proposition -> Bool
-tautology = undefined
+tautology prop = length (sat prop) == length (parts (vars prop))
 
 equivalent :: Proposition -> Proposition -> Bool
 equivalent = undefined
@@ -112,6 +147,7 @@ f2 = Not(Impl (Var "p") (Var "q"))
 f3 = Not (Var "p")
 f4 = Or f1 f2
 f5 = Impl (Var "r") (Var "r")
+f6 = Impl (And (Var "p") (Var "r")) (And (Not (Var "q")) (Var "q"))
 
 
 -- Tests
@@ -140,11 +176,11 @@ testsEj3 = test [
   ]
 
 testsEj4 = test [
-  True ~=?  eval (assignTrue ["p","q"]) (Impl (And (Var "p") (Var "r")) (And (Not (Var "q")) (Var "q")))
+  True ~=?  eval (assignTrue ["p","q"]) f6
   ]
 
 testsEj5 = test [
-  eval (assignTrue ["p","q"]) (Impl (And (Var "p") (Var "r")) (And (Not (Var "q")) (Var "q"))) ~=?  eval (assignTrue ["p","q"]) (elimImpl(Impl (And (Var "p") (Var "r")) (And (Not (Var "q")) (Var "q")))),
+  eval (assignTrue ["p","q"]) f6 ~=?  eval (assignTrue ["p","q"]) (elimImpl f6),
   Var "q" ~=?  negateProp (Not $ Var "q"),
   Var "p" ~=?  nnf (Not $ Not $ Var "p")
   ]
