@@ -87,18 +87,27 @@ elimImpl prop = foldProp idVal idNot idAnd idOr evalImplProp prop
 negateVal :: String -> Proposition
 negateVal s = Not (Var s)
 
-
 negateNot :: Proposition -> Proposition
 negateNot p = Not p
-
+                              
 negateAnd :: Proposition -> Proposition -> Proposition
 negateAnd p q = Or p q
 
 negateOr :: Proposition -> Proposition -> Proposition
 negateOr p q = And p q
 
-negateImpl :: Proposition -> Proposition -> Proposition
-negateImpl p q = And p (Not q)
+negateImpl:: Proposition -> Proposition -> Proposition
+negateImpl p q = And (Not p) q
+
+
+idAndRec :: Proposition -> Proposition -> Proposition -> Proposition ->Proposition
+idAndRec p prec q qrec = And prec qrec
+
+idOrRec :: Proposition -> Proposition -> Proposition -> Proposition ->Proposition
+idOrRec p prec q qrec = Or prec qrec
+
+idImplRec :: Proposition -> Proposition -> Proposition -> Proposition ->Proposition
+idImplRec p prec q qrec = Impl prec qrec
 
 negateProp :: Proposition -> Proposition
 negateProp prop = foldProp negateVal negateNot negateAnd negateOr negateImpl prop
