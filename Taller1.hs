@@ -104,10 +104,10 @@ negateProp :: Proposition -> Proposition
 negateProp prop = foldProp negateVal negateNot negateAnd negateOr negateImpl prop
 
 nnfNot :: Proposition -> Proposition
-nnfNot (Var p) = negateVal p
-nnfNot (Not p) = p
-nnfNot (And p q) = negateAnd p q
-nnfNot (Or p q) = negateOr p q
+nnfNot prec = case prec of
+                Not p2 -> p2
+                Var p2 -> Not $ Var p2
+                otherwhise -> negateProp prec
 
 nnf :: Proposition -> Proposition
 nnf prop = foldProp idVal nnfNot idAnd idOr idOr (elimImpl prop)
@@ -145,7 +145,8 @@ tautology :: Proposition -> Bool
 tautology prop = length (sat prop) == length (parts (vars prop))
 
 equivalent :: Proposition -> Proposition -> Bool
-equivalent = undefined
+equivalent p q = (eq1 p q) && (eq1 q p) 
+                 where eq1 p2 q2 = foldr (\x rec -> rec && eval (assignTrue x) p2) True $ sat q2
 
 -- Proposiciones de prueba --
 
