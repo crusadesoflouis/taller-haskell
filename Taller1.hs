@@ -78,7 +78,7 @@ idOr p q = Or p q
 
 -- No me gusta el nombre, cambienlo tranquilamente
 evalImplProp :: Proposition -> Proposition -> Proposition
-evalImplProp = (\p q -> Or (Not p) q) 
+evalImplProp p q = Or (negateNot p) q
 
 elimImpl :: Proposition -> Proposition
 elimImpl prop = foldProp idVal idNot idAnd idOr evalImplProp prop
@@ -88,7 +88,10 @@ negateVal :: String -> Proposition
 negateVal s = Not (Var s)
 
 negateNot :: Proposition -> Proposition
-negateNot p = Not p
+negateNot p = case p of
+              Not (Var p2) -> Var p2
+              Not p2 -> p2
+              otherwise -> negateProp p
                               
 negateAnd :: Proposition -> Proposition -> Proposition
 negateAnd p q = Or p q
@@ -97,29 +100,13 @@ negateOr :: Proposition -> Proposition -> Proposition
 negateOr p q = And p q
 
 negateImpl:: Proposition -> Proposition -> Proposition
-negateImpl p q = And (Not p) q
-
-
-idAndRec :: Proposition -> Proposition -> Proposition -> Proposition ->Proposition
-idAndRec p prec q qrec = And prec qrec
-
-idOrRec :: Proposition -> Proposition -> Proposition -> Proposition ->Proposition
-idOrRec p prec q qrec = Or prec qrec
-
-idImplRec :: Proposition -> Proposition -> Proposition -> Proposition ->Proposition
-idImplRec p prec q qrec = Impl prec qrec
+negateImpl p q = And (negateNot p) q
 
 negateProp :: Proposition -> Proposition
 negateProp prop = foldProp negateVal negateNot negateAnd negateOr negateImpl prop
 
-nnfNot :: Proposition -> Proposition
-nnfNot prec = case prec of
-                Not p2 -> p2
-                Var p2 -> Not $ Var p2
-                otherwhise -> negateProp prec
-
 nnf :: Proposition -> Proposition
-nnf prop = foldProp idVal nnfNot idAnd idOr idOr (elimImpl prop)
+nnf prop = foldProp idVal negateProp idAnd idOr idOr (elimImpl prop)
 
 varsVar :: String -> [String]
 varsVar s = s:[]
