@@ -36,12 +36,12 @@ showImpl p q = '(':p ++ (" \8835 " ++ q ++ ")")
 instance Show Proposition where
   show = foldProp showVar showNot showAnd showOr showImpl
 --Códigos Unicode para simbolitos por si hay problemas de codificación:  \172 not, \8835 implica, \8743 and , \8744 or.
-  
+
 assignTrue :: [String] -> Assignment
 assignTrue xs = (\ x -> elem x xs) 
 
 evalVar ::  Assignment -> String -> Bool
-evalVar a s = a s
+evalVar a p = a p
 
 -- flip
 --evalVar :: String -> Assignment -> Bool
@@ -58,7 +58,7 @@ evalOr = (||)
 
 -- Chequeado con tabla de verdad
 evalImpl :: Bool -> Bool -> Bool
-evalImpl = (\p q -> not p || (p && q)) 
+evalImpl = (\p q -> not p || q) 
 
 eval :: Assignment -> Proposition -> Bool
 eval a prop = foldProp (evalVar a) evalNot evalAnd evalOr evalImpl prop 
@@ -78,7 +78,7 @@ idOr p q = Or p q
 
 -- No me gusta el nombre, cambienlo tranquilamente
 evalImplProp :: Proposition -> Proposition -> Proposition
-evalImplProp = (\p q -> Or (Not p) (And p q)) 
+evalImplProp = (\p q -> Or (Not p) q) 
 
 elimImpl :: Proposition -> Proposition
 elimImpl prop = foldProp idVal idNot idAnd idOr evalImplProp prop
@@ -87,23 +87,30 @@ elimImpl prop = foldProp idVal idNot idAnd idOr evalImplProp prop
 negateVal :: String -> Proposition
 negateVal s = Not (Var s)
 
+
 negateNot :: Proposition -> Proposition
-negateNot p = p
+negateNot p = Not p
 
 negateAnd :: Proposition -> Proposition -> Proposition
-negateAnd p q = Or p q
+negateAnd p q = Or (Not p) (Not q)
 
 negateOr :: Proposition -> Proposition -> Proposition
-negateOr p q = And p q
+negateOr p q = And (Not p) (Not q)
 
 negateImpl :: Proposition -> Proposition -> Proposition
-negateImpl p q = And p q
+negateImpl p q = And p (Not q)
 
 negateProp :: Proposition -> Proposition
-negateProp = undefined
+negateProp prop = foldProp negateVal negateNot negateAnd negateOr negateImpl prop
+
+nnfNot :: Proposition -> Proposition
+nnfNot (Var p) = negateVal p
+nnfNot (Not p) = p
+nnfNot (And p q) = negateAnd p q
+nnfNot (Or p q) = negateOr p q
 
 nnf :: Proposition -> Proposition
-nnf = undefined
+nnf prop = foldProp idVal nnfNot idAnd idOr idOr (elimImpl prop)
 
 varsVar :: String -> [String]
 varsVar s = s:[]
@@ -172,8 +179,9 @@ testsEj2 = test [
   ]
 
 testsEj3 = test [
-  0 ~=? 0 --Cambiar esto por tests verdaderos.
+  eval (assignTrue ["p"]) f3 ~=? eval ("p" ==) f3
   ]
+
 
 testsEj4 = test [
   True ~=?  eval (assignTrue ["p","q"]) f6
