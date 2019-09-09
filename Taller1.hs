@@ -92,10 +92,10 @@ negateNot :: Proposition -> Proposition
 negateNot p = Not p
 
 negateAnd :: Proposition -> Proposition -> Proposition
-negateAnd p q = Or (Not p) (Not q)
+negateAnd p q = Or p q
 
 negateOr :: Proposition -> Proposition -> Proposition
-negateOr p q = And (Not p) (Not q)
+negateOr p q = And p q
 
 negateImpl :: Proposition -> Proposition -> Proposition
 negateImpl p q = And p (Not q)
@@ -155,6 +155,7 @@ f3 = Not (Var "p")
 f4 = Or f1 f2
 f5 = Impl (Var "r") (Var "r")
 f6 = Impl (And (Var "p") (Var "r")) (And (Not (Var "q")) (Var "q"))
+f7 = Not (And (Var "p") (Var "q"))
 
 
 -- Tests
