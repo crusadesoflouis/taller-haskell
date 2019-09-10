@@ -27,122 +27,52 @@ foldProp casoVar casoNot casoAnd casoOr casoImpl prop = case prop of
       where rec = foldProp casoVar casoNot casoAnd casoOr casoImpl
 
 
-showVar s = s
-showNot p = '\172' : p
-showAnd p q = '(':p ++ (" \8743 " ++ q ++ ")")
-showOr p q = '(':p ++ (" \8744 " ++ q ++ ")")
-showImpl p q = '(':p ++ (" \8835 " ++ q ++ ")")
 
 instance Show Proposition where
-  show = foldProp showVar showNot showAnd showOr showImpl
+  show = foldProp id showNot showAnd showOr showImpl
+      where showNot p = '\172' : p
+            showAnd p q = '(':p ++ (" \8743 " ++ q ++ ")")
+            showOr p q = '(':p ++ (" \8744 " ++ q ++ ")")
+            showImpl p q = '(':p ++ (" \8835 " ++ q ++ ")")
+
 --Códigos Unicode para simbolitos por si hay problemas de codificación:  \172 not, \8835 implica, \8743 and , \8744 or.
 
 assignTrue :: [String] -> Assignment
-assignTrue xs = (\ x -> elem x xs) 
-
-evalVar ::  Assignment -> String -> Bool
-evalVar a p = a p
-
--- flip
---evalVar :: String -> Assignment -> Bool
---evalVar s  a = a s
-
-evalNot :: Bool -> Bool
-evalNot = (not)  
-
-evalAnd :: Bool -> Bool -> Bool
-evalAnd = (&&) 
-
-evalOr :: Bool -> Bool -> Bool
-evalOr = (||) 
-
--- Chequeado con tabla de verdad
-evalImpl :: Bool -> Bool -> Bool
-evalImpl = (\p q -> not p || q) 
+assignTrue  = flip elem 
 
 eval :: Assignment -> Proposition -> Bool
-eval a prop = foldProp (evalVar a) evalNot evalAnd evalOr evalImpl prop 
-
--- Estos los hice porque no se como se haría una función identidad genérica en estos casos
-idVal :: String -> Proposition
-idVal s = Var s
-
-idNot :: Proposition -> Proposition
-idNot p = Not p
-
-idAnd :: Proposition -> Proposition -> Proposition
-idAnd p q = And p q
-
-idOr :: Proposition -> Proposition -> Proposition
-idOr p q = Or p q
-
--- No me gusta el nombre, cambienlo tranquilamente
-evalImplProp :: Proposition -> Proposition -> Proposition
-evalImplProp p q = Or (negateNot p) q
+eval a = foldProp (a $) not (&&) (||) (\p q -> not p || q) 
 
 elimImpl :: Proposition -> Proposition
-elimImpl prop = foldProp idVal idNot idAnd idOr evalImplProp prop
-
--- Este esta totalmente mal.
-negateVal :: String -> Proposition
-negateVal s = Not (Var s)
-
-negateNot :: Proposition -> Proposition
-negateNot p = case p of
-              Not (Var p2) -> Var p2
-              Not p2 -> p2
-              otherwise -> negateProp p
-                              
-negateAnd :: Proposition -> Proposition -> Proposition
-negateAnd p q = Or p q
-
-negateOr :: Proposition -> Proposition -> Proposition
-negateOr p q = And p q
-
-negateImpl:: Proposition -> Proposition -> Proposition
-negateImpl p q = And (negateNot p) q
+elimImpl = foldProp Var Not And Or evalImplProp 
+                 where evalImplProp = (\p q -> Or (Not p) q) 
 
 negateProp :: Proposition -> Proposition
-negateProp prop = foldProp negateVal negateNot negateAnd negateOr negateImpl prop
+negateProp = recProp (\s -> Not (Var s)) (\p prec -> p) negateAnd negateOr negateImpl
+                 where negateAnd = (\_ prec _ qrec -> Or prec qrec)
+                       negateOr = (\_ prec _ qrec -> And prec qrec)
+                       negateImpl = (\p _ _ qrec -> And p qrec)
 
 nnf :: Proposition -> Proposition
-nnf prop = foldProp idVal negateProp idAnd idOr idOr (elimImpl prop)
-
-varsVar :: String -> [String]
-varsVar s = s:[]
-
-varsNot :: [String] -> [String]
-varsNot xs = xs
-
--- Estas tres claramente pueden ser las mismas, nub es una funcion de Data.List, saca repetidos.
-varsAnd :: [String] -> [String] -> [String]
-varsAnd xs ys = nub (xs ++ ys)
-
-varsOr :: [String] -> [String] -> [String]
-varsOr xs ys = nub (xs ++ ys)
-
-varsImpl :: [String] -> [String] -> [String]
-varsImpl xs ys = nub (xs ++ ys)
+nnf = foldProp Var negateProp And Or (error "etc") . elimImpl 
 
 vars :: Proposition -> [String]
-vars prop = foldProp varsVar varsNot varsAnd varsOr varsImpl prop
+vars  = foldProp (:[]) id union union union 
 
--- Esto no se si se puede, pero en el pdf dice que podemos usar Data.List y es una funcion de ahi.
 parts :: [a] -> [[a]]
-parts = subsequences
+parts  = foldr (\x rec -> (map (x:) rec) ++ rec) [[]] 
 
 sat :: Proposition -> [[String]]
 sat prop = filter ((flip (eval . assignTrue)) prop) (parts (vars prop))
 
 satisfiable :: Proposition -> Bool
-satisfiable prop = length (sat prop) > 0
+satisfiable = not . null . sat
 
 tautology :: Proposition -> Bool
 tautology prop = length (sat prop) == length (parts (vars prop))
 
 equivalent :: Proposition -> Proposition -> Bool
-equivalent p q = (eq1 p q) && (eq1 q p) 
-                 where eq1 p2 q2 = foldr (\x rec -> rec && eval (assignTrue x) p2) True $ sat q2
+equivalent p q = tautology (Impl p q) && tautology (Impl q p)
 
 -- Proposiciones de prueba --
 
@@ -153,6 +83,12 @@ f4 = Or f1 f2
 f5 = Impl (Var "r") (Var "r")
 f6 = Impl (And (Var "p") (Var "r")) (And (Not (Var "q")) (Var "q"))
 f7 = Not (And (Var "p") (Var "q"))
+f8 = And f1 f6
+f9 = Not f3
+f10 = (Impl f6 f6)
+f11 = Or f2 f1
+f12 = Not $ Not $ Not $ Not $ Not $ Not $ Var "p"
+
 
 
 -- Tests
@@ -165,7 +101,8 @@ allTests = test [
   "ejercicio3" ~: testsEj3,
   "ejercicio4" ~: testsEj4,
   "ejercicio5" ~: testsEj5,
-  "ejercicio6" ~: testsEj6
+  "ejercicio6" ~: testsEj6,
+  "ejercicio7" ~: testsEj7
   ]
 
 testsEj1 = test [
@@ -188,10 +125,16 @@ testsEj4 = test [
 testsEj5 = test [
   eval (assignTrue ["p","q"]) f6 ~=?  eval (assignTrue ["p","q"]) (elimImpl f6),
   Var "q" ~=?  negateProp (Not $ Var "q"),
-  Var "p" ~=?  nnf (Not $ Not $ Var "p")
+  Var "p" ~=?  nnf (Not $ Not $ Var "p"),
+  Var "p" ~=? nnf (f12)
   ]
 
 testsEj6 = test [
-  [[1,2,3],[1,2],[1,3],[1],[2,3],[2],[3],[]] ~=? parts [1,2,3]
+  [[1,2,3],[1,2],[1,3],[1],[2,3],[2],[3],[]] ~=? parts [1,2,3],
+  True ~=? tautology f10,
+  True ~=? equivalent f4 f11
   ]
 
+testsEj7 = test [
+  True ~=? all (\p -> equivalent p (nnf p)) [f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12] 
+  ]
