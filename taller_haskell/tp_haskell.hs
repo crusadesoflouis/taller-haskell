@@ -11,7 +11,7 @@ data Melodia =
      Nota Tono Duracion |
      Secuencia Melodia Melodia |
      Paralelo [Melodia]
-  deriving Show
+  deriving (Show, Eq)
 
 -- Funciones auxiliares dadas
 
@@ -23,19 +23,17 @@ foldNat caso0 casoSuc n | n == 0 = caso0
 -- Funciones pedidas
 
 -- Ejercicio 1
-
-
 superponer :: Melodia->Duracion->Melodia->Melodia
 superponer m1 s m2 = Paralelo[m1,Secuencia (Silencio s) (m2)]
-----------------------------REVISAR---------------------------------------------------
+
 -- Sugerencia: usar foldNat
 canon :: Duracion->Integer->Melodia->Melodia
-canon duracion repeticion m1 = foldNat (Secuencia (Silencio duracion) m1)
+canon duracion repeticion m1 = foldNat (m1)
                                 (\rec -> superponer  m1 duracion rec ) (repeticion-1)
 
 --(a -> a -> a) -> [a] -> a
 secuenciar :: [Melodia] -> Melodia--Se asume que la lista no es vacía.
-secuenciar = foldr1 (\head acum -> Secuencia head acum)
+secuenciar = foldl1 (\head acum -> Secuencia head acum)
 --secuenciar = foldl1 (\acum head -> Secuencia head acum) l el primer elemento a ejecutar es la cabeza
 -- r el primer elemento a ejecutar es la cola
 
@@ -45,6 +43,8 @@ secuenciar = foldr1 (\head acum -> Secuencia head acum)
 --(Integer -> Melodia -> Melodia) -> Melodia -> [Int] -> Melodia
 canonInfinito :: Duracion->Melodia->Melodia
 canonInfinito d m = foldr (\x rec ->Paralelo[Secuencia (Silencio d) m,rec]) m [1..]
+
+
 
 -- Ejercicio 3
 foldMelodia :: (Duracion -> b) -> (Tono -> Duracion -> b) -> (b -> b -> b) -> ([b]->b) -> Melodia -> b
@@ -93,12 +93,17 @@ invertir = foldMelodia
 -- Ejercicio 5
 
 -- En instantes menores que 0 no suena ninguna nota. Se puede usar recursión explícita. Resaltar las partes del código que hacen que no se ajuste al esquema fold.
-notasQueSuenan :: Instante->Melodia->[Tono]
 --Sugerencia: usar concatMap.
+notasQueSuenan :: Instante->Melodia->[Tono]
 notasQueSuenan n (Silencio d) = []
 notasQueSuenan n (Nota t d) = if (n<=d) then [t] else []
-notasQueSuenan n (Secuencia m1 m2) = (notasQueSuenan n m1) ++ (notasQueSuenan n m2)
-notasQueSuenan n (Paralelo xs) = concatMap (\x -> notasQueSuenan n x ) xs
+notasQueSuenan n (Secuencia m1 m2) = filtrarDuplicados ((notasQueSuenan n m1) ++ (notasQueSuenan n m2))
+notasQueSuenan n (Paralelo xs) = filtrarDuplicados (concatMap (\x -> notasQueSuenan n x ) xs)
+
+filtrarDuplicados :: (Eq a) => [a] -> [a]
+filtrarDuplicados [] = []
+filtrarDuplicados (x:xs) = x : filtrarDuplicados (filter (/= x) xs)
+
 
 
 -- Ejercicio 6
@@ -243,9 +248,24 @@ allTests = test [
 
 -- Ejemplos sólo para mostrar cómo se escriben los tests. Reemplazar por los tests propios.
 
+-- data Melodia =
+ -- Silencio Duracion |
+ -- Nota Tono Duracion |
+ -- Secuencia Melodia Melodia |
+ -- Paralelo [Melodia]
 testsEj1 = test [
-  2 ~=? 1+1,
-  4 ~=? 2*2
+  -- Ej (a)
+  superponer (Silencio 10) 5 (Silencio 15) ~=? Paralelo [Silencio 10,Secuencia (Silencio 5) (Silencio 15)],
+  superponer (Secuencia (Nota 10 10) (Nota 5 15)) 7 (Nota 15 15) ~=? Paralelo [Secuencia (Nota 10 10) (Nota 5 15), Secuencia (Silencio 7) (Nota 15 15)],
+  superponer (Paralelo [Secuencia (Nota 50 5) (Silencio 15), Secuencia (Nota 60 10) (Nota 45 7)]) 20 (Secuencia (Nota 15 15) (Nota 60 60)) ~=? Paralelo [Paralelo [Secuencia (Nota 50 5) (Silencio 15), Secuencia (Nota 60 10) (Nota 45 7)], Secuencia (Silencio 20) (Secuencia (Nota 15 15) (Nota 60 60))],
+  -- Ej (b)
+  canon 2 3 (Nota 60 4) ~=? Paralelo [Nota 60 4,Secuencia (Silencio 2) (Paralelo [Nota 60 4,Secuencia (Silencio 2) (Nota 60 4)])],
+  canon 2 6 (Nota 60 4) ~=? Paralelo [Nota 60 4,Secuencia (Silencio 2) (Paralelo [Nota 60 4,Secuencia (Silencio 2) (Paralelo [Nota 60 4,Secuencia (Silencio 2) (Paralelo [Nota 60 4,Secuencia (Silencio 2) (Paralelo [Nota 60 4,Secuencia (Silencio 2) (Nota 60 4)])])])])],
+  canon 2 3 (Paralelo[Secuencia (Silencio 10) (Nota 60 4), (Nota 40 10)]) ~=? Paralelo [Paralelo[Secuencia (Silencio 10) (Nota 60 4), (Nota 40 10)],Secuencia (Silencio 2) (Paralelo [Paralelo[Secuencia (Silencio 10) (Nota 60 4), (Nota 40 10)],Secuencia (Silencio 2) (Paralelo[Secuencia (Silencio 10) (Nota 60 4), (Nota 40 10)])])],
+  -- Ej (c)
+  secuenciar [Nota 60 1, Nota 60 2, Nota 60 3] ~=? Secuencia (Secuencia (Nota 60 1) (Nota 60 2)) (Nota 60 3),
+  secuenciar [Nota 60 1, Nota 60 2, Secuencia (Nota 60 3) (Nota 60 4)] ~=? Secuencia (Secuencia (Nota 60 1) (Nota 60 2)) (Secuencia (Nota 60 3) (Nota 60 4)),
+  secuenciar [Nota 60 1, Nota 60 2, Silencio 3, Paralelo[Nota 60 4, Nota 60 5]] ~=? Secuencia (Secuencia (Secuencia (Nota 60 1) (Nota 60 2)) (Silencio 3)) (Paralelo[Nota 60 4, Nota 60 5])
   ]
 testsEj2 = test [
   2 ~=? 1+1,
@@ -256,12 +276,31 @@ testsEj3 = test [
   4 ~=? 2*2
   ]
 testsEj4 = test [
-  2 ~=? 1+1,
-  4 ~=? 2*2
+  -- Ej a
+  mapMelodia (\x-> x) doremi ~=? doremi,
+  mapMelodia (\x-> x*2) doremi ~=? Secuencia (Secuencia (Secuencia (Secuencia (Secuencia (Secuencia (Nota 120 3) (Nota 124 1)) (Nota 128 3)) (Nota 120 1)) (Nota 128 2)) (Nota 120 2)) (Nota 128 4),
+  -- Ej b
+  transportar 10 doremi ~=? Secuencia (Secuencia (Secuencia (Secuencia (Secuencia (Secuencia (Nota 70 3) (Nota 72 1)) (Nota 74 3)) (Nota 70 1)) (Nota 74 2)) (Nota 70 2)) (Nota 74 4),
+  -- Ej c
+  duracionTotal doremi ~=? 16,
+  duracionTotal (Silencio 10) ~=? 10,
+  duracionTotal (Paralelo[Silencio 10]) ~=? 10,
+  duracionTotal (Paralelo[Secuencia (Nota 60 10) (Silencio 10), Nota 50 5]) ~=? 25,
+  -- Ej d
+  cambiarVelocidad 0.5 doremi ~=? Secuencia (Secuencia (Secuencia (Secuencia (Secuencia (Secuencia (Nota 60 2) (Nota 62 0)) (Nota 64 2)) (Nota 60 0)) (Nota 64 1)) (Nota 60 1)) (Nota 64 2),
+  cambiarVelocidad 2 doremi ~=? Secuencia (Secuencia (Secuencia (Secuencia (Secuencia (Secuencia (Nota 60 6) (Nota 62 2)) (Nota 64 6)) (Nota 60 2)) (Nota 64 4)) (Nota 60 4)) (Nota 64 8),
+  cambiarVelocidad 2 (Paralelo[Secuencia (Nota 60 10) (Silencio 10), Nota 50 5]) ~=? Paralelo[Secuencia (Nota 60 20) (Silencio 20), Nota 50 10],
+  -- Ej e
+  invertir (Paralelo[Secuencia (Nota 60 10) (Silencio 10), Nota 50 5]) ~=? Paralelo[Secuencia (Silencio 10) (Nota 60 10), Nota 50 5],
+  invertir doremi ~=? Secuencia (Nota 64 4) (Secuencia (Nota 60 2) (Secuencia (Nota 64 2) (Secuencia (Nota 60 1) (Secuencia (Nota 64 3) (Secuencia (Nota 62 1) (Nota 60 3)))))),
+  invertir (Secuencia (Secuencia (Nota 10 1) (Secuencia (Nota 10 2) (Nota 10 3))) (Nota 10 4)) ~=? Secuencia (Nota 10 4) (Secuencia (Secuencia (Nota 10 3) (Nota 10 2)) (Nota 10 1))
   ]
 testsEj5 = test [
-  2 ~=? 1+1,
-  4 ~=? 2*2
+  notasQueSuenan 1 doremi ~=? [60,62,64],
+  notasQueSuenan 4 doremi ~=? [64],
+  notasQueSuenan 15 doremi ~=? [],
+  notasQueSuenan 6 (Paralelo[Secuencia (Nota 60 10) (Silencio 10), Nota 50 5]) ~=? [60],
+  notasQueSuenan 7 (Paralelo[Secuencia (Nota 60 10) (Silencio 10), Paralelo[Secuencia (Nota 55 7) (Silencio 10), Nota 65 8]]) ~=? [60,55,65]
   ]
 testsEj6 = test [
   2 ~=? 1+1,
