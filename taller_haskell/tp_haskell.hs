@@ -101,9 +101,7 @@ notasQueSuenan n (Secuencia m1 m2) = filtrarDuplicados ((notasQueSuenan n m1) ++
 notasQueSuenan n (Paralelo xs) = filtrarDuplicados (concatMap (\x -> notasQueSuenan n x ) xs)
 
 filtrarDuplicados :: (Eq a) => [a] -> [a]
-filtrarDuplicados [] = []
-filtrarDuplicados (x:xs) = x : filtrarDuplicados (filter (/= x) xs)
-
+filtrarDuplicados = foldr (\x recur -> x : (filter (/= x) recur)) []
 
 
 -- Ejercicio 6
@@ -112,11 +110,38 @@ data Evento = On Instante Tono | Off Instante Tono deriving (Show, Eq)
 
 --Sugerencia: usar listas por comprensión. No repetir eventos.
 cambios :: Instante->[Tono]->[Tono]->[Evento]
-cambios = undefined
+cambios i t1 t2 = filtrarDuplicados([ Off i x | x <- t1, not (elem x t2)] ++ [ On i y | y <- t2, not (elem y t1)])
 
 --Sugerencia: usar foldl sobre la lista de 0 a la duración.
 eventosPorNotas :: (Instante->[Tono])->Duracion->[Evento]
-eventosPorNotas = undefined
+eventosPorNotas f d = apagarNotasPrendidas (aux f d) (d+1)
+
+
+aux :: (Instante->[Tono])->Duracion->[Evento]
+aux f d = foldl (\acum instan ->  if null (f instan) then apagoTodosLosEventos acum instan else prenderEventosConNuevosTonos (f instan) acum instan) [] [0..d]
+
+
+prenderEventosConNuevosTonos :: [Tono] -> [Evento] -> Instante -> [Evento]
+prenderEventosConNuevosTonos tonos acum instan = foldl (\recur2 tono -> if estaPrendido tono recur2 then recur2 else (On instan tono) : recur2) acum tonos
+
+apagoTodosLosEventos :: [Evento] -> Instante -> [Evento]
+apagoTodosLosEventos acum instan = foldl (\recur1 event -> if isOn event then Off instan (getTono event) : recur1 else recur1) acum acum
+
+isOn ::  Evento -> Bool
+isOn (On i t) = True
+isOn (Off i t) = False
+
+getTono :: Evento -> Tono
+getTono (On i t) = t
+getTono (Off i t) = t
+
+estaPrendido :: Tono -> [Evento] ->Bool
+estaPrendido tono eventos = foldl (\recur evento -> if ((getTono evento) == tono) then isOn evento else recur) False eventos
+
+apagarNotasPrendidas :: [Evento] -> Instante -> [Evento]
+apagarNotasPrendidas eventos instan = foldl (\ recur evento -> if  isOn evento then Off instan (getTono evento) : recur else recur) eventos eventos
+-- apagarNotasPrendidas eventos instan = foldl (\ recur evento -> recr ()) eventos eventos
+
 
 eventos :: Melodia -> Duracion -> [Evento]
 eventos = undefined
