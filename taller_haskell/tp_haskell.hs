@@ -112,9 +112,18 @@ data Evento = On Instante Tono | Off Instante Tono deriving (Show, Eq)
 cambios :: Instante->[Tono]->[Tono]->[Evento]
 cambios i t1 t2 = filtrarDuplicados([ Off i x | x <- t1, not (elem x t2)] ++ [ On i y | y <- t2, not (elem y t1)])
 
+--6 b
 --Sugerencia: usar foldl sobre la lista de 0 a la duración.
 eventosPorNotas :: (Instante->[Tono])->Duracion->[Evento]
 eventosPorNotas f d = apagarNotasPrendidas (aux f d) (d+1)
+
+--foldl :: Foldable t => (b -> a -> b) -> b -> t a -> b
+--------
+--revisar el caso recursivo ( en el lado del eslse hay que ver que hacer con el cambios con x (f x) (f x-1))
+eventosPorNotas f d = foldl (\acum x -> if x==d then acum ++ cambios d (f d) [] else acum ++ cambios (x) (f x) (f x-1)) (cambios 0 [] (f 0) ) [0..d]
+
+eventosPorNfoldl (\acum x -> cambios )
+-------
 
 
 aux :: (Instante->[Tono])->Duracion->[Evento]
