@@ -55,15 +55,6 @@ foldMelodia caso_silencio caso_nota caso_secuencia caso_paralelo (Secuencia m1 m
                    (foldMelodia caso_silencio caso_nota caso_secuencia caso_paralelo m2)
 foldMelodia caso_silencio caso_nota caso_secuencia caso_paralelo (Paralelo seq_melody) = caso_paralelo (map (\x -> foldMelodia caso_silencio caso_nota caso_secuencia caso_paralelo x) seq_melody)
 
--- Ejercicio 4
-
---data Melodia =
---     Silencio Duracion |
---     Nota Tono Duracion |
---     Secuencia Melodia Melodia |
---     Paralelo [Melodia]
---  deriving Show
-
 mapMelodia :: (Tono -> Tono)->Melodia->Melodia
 mapMelodia f = foldMelodia (\d -> Silencio d) (\t d -> Nota (f t) d ) (\rec1 rec2 -> Secuencia rec1 rec2) (\lrec -> Paralelo lrec)
 
@@ -94,10 +85,12 @@ invertir = foldMelodia
 
 -- En instantes menores que 0 no suena ninguna nota. Se puede usar recursión explícita. Resaltar las partes del código que hacen que no se ajuste al esquema fold.
 --Sugerencia: usar concatMap.
+
 notasQueSuenan :: Instante->Melodia->[Tono]
+notasQueSuenan n _ | n < 0 = []  
 notasQueSuenan n (Silencio d) = []
 notasQueSuenan n (Nota t d) = if (n<=d) then [t] else []
-notasQueSuenan n (Secuencia m1 m2) = filtrarDuplicados ((notasQueSuenan n m1) ++ (notasQueSuenan n m2))
+notasQueSuenan n (Secuencia m1 m2) = if (duracionTotal m1) >= n then filtrarDuplicados (notasQueSuenan n m1) else filtrarDuplicados (notasQueSuenan (n - (duracionTotal m1)) m2)
 notasQueSuenan n (Paralelo xs) = filtrarDuplicados (concatMap (\x -> notasQueSuenan n x ) xs)
 
 filtrarDuplicados :: (Eq a) => [a] -> [a]
@@ -115,45 +108,22 @@ cambios i t1 t2 = filtrarDuplicados([ Off i x | x <- t1, not (elem x t2)] ++ [ O
 --6 b
 --Sugerencia: usar foldl sobre la lista de 0 a la duración.
 eventosPorNotas :: (Instante->[Tono])->Duracion->[Evento]
-eventosPorNotas f d = apagarNotasPrendidas (aux f d) (d+1)
-
---foldl :: Foldable t => (b -> a -> b) -> b -> t a -> b
---------
---revisar el caso recursivo ( en el lado del eslse hay que ver que hacer con el cambios con x (f x) (f x-1))
-eventosPorNotas f d = foldl (\acum x -> if x==d then acum ++ cambios d (f d) [] else acum ++ cambios (x) (f x) (f x-1)) (cambios 0 [] (f 0) ) [0..d]
-
-eventosPorNfoldl (\acum x -> cambios )
--------
-
-
-aux :: (Instante->[Tono])->Duracion->[Evento]
-aux f d = foldl (\acum instan ->  if null (f instan) then apagoTodosLosEventos acum instan else prenderEventosConNuevosTonos (f instan) acum instan) [] [0..d]
-
-
-prenderEventosConNuevosTonos :: [Tono] -> [Evento] -> Instante -> [Evento]
-prenderEventosConNuevosTonos tonos acum instan = foldl (\recur2 tono -> if estaPrendido tono recur2 then recur2 else (On instan tono) : recur2) acum tonos
-
-apagoTodosLosEventos :: [Evento] -> Instante -> [Evento]
-apagoTodosLosEventos acum instan = foldl (\recur1 event -> if isOn event then Off instan (getTono event) : recur1 else recur1) acum acum
-
-isOn ::  Evento -> Bool
-isOn (On i t) = True
-isOn (Off i t) = False
-
-getTono :: Evento -> Tono
-getTono (On i t) = t
-getTono (Off i t) = t
-
-estaPrendido :: Tono -> [Evento] ->Bool
-estaPrendido tono eventos = foldl (\recur evento -> if ((getTono evento) == tono) then isOn evento else recur) False eventos
-
-apagarNotasPrendidas :: [Evento] -> Instante -> [Evento]
-apagarNotasPrendidas eventos instan = foldl (\ recur evento -> if  isOn evento then Off instan (getTono evento) : recur else recur) eventos eventos
--- apagarNotasPrendidas eventos instan = foldl (\ recur evento -> recr ()) eventos eventos
-
+eventosPorNotas f d = foldl (\acum x -> if x== (d+1) then acum ++ cambios x (f (x-1)) [] else acum ++ cambios x (f (x-1)) (f x)) (cambios 0 [] (f 0)) [1..(d+1)]
 
 eventos :: Melodia -> Duracion -> [Evento]
-eventos = undefined
+eventos m d = eventosPorNotas (flip notasQueSuenan m) d
+
+----funciones auxiliares
+---funcion auxiliar para probar el ejericio 6-----
+funcionAnonima :: Instante -> [Tono]
+funcionAnonima = (\x -> case x of 
+                                0 -> [60] 
+                                1 -> [60,64] 
+                                2 -> [] 
+                                3 -> [67])
+
+funcionLoca :: Melodia-> Instante -> [Tono]
+funcionLoca m = flip notasQueSuenan m
 
 -- GENERADOR
 
@@ -330,13 +300,28 @@ testsEj4 = test [
   invertir (Secuencia (Secuencia (Nota 10 1) (Secuencia (Nota 10 2) (Nota 10 3))) (Nota 10 4)) ~=? Secuencia (Nota 10 4) (Secuencia (Secuencia (Nota 10 3) (Nota 10 2)) (Nota 10 1))
   ]
 testsEj5 = test [
-  notasQueSuenan 1 doremi ~=? [60,62,64],
-  notasQueSuenan 4 doremi ~=? [64],
-  notasQueSuenan 15 doremi ~=? [],
+  notasQueSuenan 0 doremi ~=? [60],
+  notasQueSuenan 1 doremi ~=? [60],
+  notasQueSuenan 2 doremi ~=? [60],
+  notasQueSuenan 3 doremi ~=? [60],
+  notasQueSuenan 4 doremi ~=? [62],
+  notasQueSuenan 5 doremi ~=? [64],
+  notasQueSuenan 15 doremi ~=? [64],
+  notasQueSuenan 16 doremi ~=? [64],
+  notasQueSuenan 17 doremi ~=? [],        
   notasQueSuenan 6 (Paralelo[Secuencia (Nota 60 10) (Silencio 10), Nota 50 5]) ~=? [60],
   notasQueSuenan 7 (Paralelo[Secuencia (Nota 60 10) (Silencio 10), Paralelo[Secuencia (Nota 55 7) (Silencio 10), Nota 65 8]]) ~=? [60,55,65]
   ]
+
 testsEj6 = test [
-  2 ~=? 1+1,
-  4 ~=? 2*2
+  -- Ej a
+  cambios 1 [1,2,3,4,5] [1,2,7,5,7,4,9] ~=? [Off 1 3,On 1 7,On 1 9],
+  cambios 0 [1,2] []~=? [Off 0 1, Off 0 2],
+  cambios 3 [] [5,6]~=? [On 3 5, On 3 6], 
+  -- Ej b
+  eventosPorNotas funcionAnonima 2 ~=? [On 0 60,On 1 64,Off 2 60,Off 2 64],
+  eventosPorNotas funcionAnonima 3 ~=? [On 0 60,On 1 64,Off 2 60,Off 2 64,On 3 67,Off 4 67],
+  eventosPorNotas (funcionLoca doremi) 5 ~=? [On 0 60,Off 4 60,On 4 62,Off 5 62,On 5 64,Off 6 64],
+  -- ej c
+  eventos doremi 5 ~=? [On 0 60, Off 3 60, On 3 62, Off 4 62, On 4 64, Off 6 64]
   ]
