@@ -82,6 +82,8 @@ invertir = foldMelodia
                   (\lrec ->  Paralelo lrec)
 
 -- Ejercicio 5
+-- TODO agregar comentarios por qué no es posible usar foldMelodia
+-- TODO Indicar en comentarios por qué no es posible logr  "notasQueSuenan' :: Melodia ! ( Instante ! [Tono]), es decir haciendo que el tipo de lo que devuelve el fold sean funciones"
 
 -- En instantes menores que 0 no suena ninguna nota. Se puede usar recursión explícita. Resaltar las partes del código que hacen que no se ajuste al esquema fold.
 --Sugerencia: usar concatMap.
@@ -110,6 +112,7 @@ cambios i t1 t2 = filtrarDuplicados([ Off i x | x <- t1, not (elem x t2)] ++ [ O
 eventosPorNotas :: (Instante->[Tono])->Duracion->[Evento]
 eventosPorNotas f d = foldl (\acum x -> if x== (d+1) then acum ++ cambios x (f (x-1)) [] else acum ++ cambios x (f (x-1)) (f x)) (cambios 0 [] (f 0)) [1..(d+1)]
 
+--6 c
 eventos :: Melodia -> Duracion -> [Evento]
 eventos m d = eventosPorNotas (flip notasQueSuenan m) d
 
@@ -121,6 +124,15 @@ funcionAnonima = (\x -> case x of
                                 1 -> [60,64] 
                                 2 -> [] 
                                 3 -> [67])
+
+funcionAnonima2 :: Instante -> [Tono]
+funcionAnonima2 = (\x -> case x of 
+                                0 -> []
+                                1 -> [60,61,62]
+                                2 -> [61,63]
+                                3 -> [61]
+                                4 -> [61,64]
+                                5 -> [])
 
 funcionLoca :: Melodia-> Instante -> [Tono]
 funcionLoca m = flip notasQueSuenan m
@@ -306,6 +318,10 @@ testsEj5 = test [
   notasQueSuenan 3 doremi ~=? [60],
   notasQueSuenan 4 doremi ~=? [62],
   notasQueSuenan 5 doremi ~=? [64],
+  notasQueSuenan 8 doremi ~=? [60],
+  notasQueSuenan 9 doremi ~=? [64],
+  notasQueSuenan 11 doremi ~=? [60],
+  notasQueSuenan 13 doremi ~=? [64],
   notasQueSuenan 15 doremi ~=? [64],
   notasQueSuenan 16 doremi ~=? [64],
   notasQueSuenan 17 doremi ~=? [],        
@@ -315,6 +331,7 @@ testsEj5 = test [
 
 testsEj6 = test [
   -- Ej a
+  cambios 1 [] [] ~=? [],
   cambios 1 [1,2,3,4,5] [1,2,7,5,7,4,9] ~=? [Off 1 3,On 1 7,On 1 9],
   cambios 0 [1,2] []~=? [Off 0 1, Off 0 2],
   cambios 3 [] [5,6]~=? [On 3 5, On 3 6], 
@@ -322,6 +339,17 @@ testsEj6 = test [
   eventosPorNotas funcionAnonima 2 ~=? [On 0 60,On 1 64,Off 2 60,Off 2 64],
   eventosPorNotas funcionAnonima 3 ~=? [On 0 60,On 1 64,Off 2 60,Off 2 64,On 3 67,Off 4 67],
   eventosPorNotas (funcionLoca doremi) 5 ~=? [On 0 60,Off 4 60,On 4 62,Off 5 62,On 5 64,Off 6 64],
-  -- ej c
-  eventos doremi 5 ~=? [On 0 60, Off 3 60, On 3 62, Off 4 62, On 4 64, Off 6 64]
+  eventosPorNotas (\x-> []) 3 ~=? [],
+  eventosPorNotas (\x-> [60,61]) 1000 ~=? [On 0 60,On 0 61,Off 1001 60,Off 1001 61],
+  eventosPorNotas funcionAnonima2 0 ~=? [],
+  eventosPorNotas funcionAnonima2 1 ~=? [On 1 60, On 1 61, On 1 62, Off 2 60, Off 2 61, Off 2 62],
+  eventosPorNotas funcionAnonima2 2 ~=? [On 1 60, On 1 61, On 1 62, Off 2 60, Off 2 62, On 2 63, Off 3 61, Off 3 63],
+  eventosPorNotas funcionAnonima2 3 ~=? [On 1 60, On 1 61, On 1 62, Off 2 60, Off 2 62, On 2 63, Off 3 63, Off 4 61],
+  eventosPorNotas funcionAnonima2 4 ~=? [On 1 60, On 1 61, On 1 62, Off 2 60, Off 2 62, On 2 63, Off 3 63, On 4 64, Off 5 61, Off 5 64],
+  eventosPorNotas funcionAnonima2 5 ~=? [On 1 60, On 1 61, On 1 62, Off 2 60, Off 2 62, On 2 63, Off 3 63, On 4 64, Off 5 61, Off 5 64],
+  -- ej c TODO:  revisar
+  eventos doremi 5 ~=? [On 0 60, Off 4 60, On 4 62, Off 5 62, On 5 64, Off 6 64],
+  eventos acorde 6 ~=? [On 0 60, On 4 64, Off 7 60, Off 7 64],
+  eventos (Secuencia (Silencio 1) (Nota 50 5)) 1 ~=? [],
+  eventos (Secuencia (Silencio 1) (Nota 50 5)) 2 ~=? [On 2 50, Off 3 50]
   ]
