@@ -91,8 +91,8 @@ invertir = foldMelodia
 notasQueSuenan :: Instante->Melodia->[Tono]
 notasQueSuenan n _ | n < 0 = []  
 notasQueSuenan n (Silencio d) = []
-notasQueSuenan n (Nota t d) = if (n<=d) then [t] else []
-notasQueSuenan n (Secuencia m1 m2) = if (duracionTotal m1) >= n then filtrarDuplicados (notasQueSuenan n m1) else filtrarDuplicados (notasQueSuenan (n - (duracionTotal m1)) m2)
+notasQueSuenan n (Nota t d) = if (n<d) then [t] else []
+notasQueSuenan n (Secuencia m1 m2) = if (duracionTotal m1) > n then filtrarDuplicados (notasQueSuenan n m1) else filtrarDuplicados (notasQueSuenan (n - (duracionTotal m1)) m2)
 notasQueSuenan n (Paralelo xs) = filtrarDuplicados (concatMap (\x -> notasQueSuenan n x ) xs)
 
 filtrarDuplicados :: (Eq a) => [a] -> [a]
@@ -315,18 +315,19 @@ testsEj5 = test [
   notasQueSuenan 0 doremi ~=? [60],
   notasQueSuenan 1 doremi ~=? [60],
   notasQueSuenan 2 doremi ~=? [60],
-  notasQueSuenan 3 doremi ~=? [60],
-  notasQueSuenan 4 doremi ~=? [62],
+  notasQueSuenan 3 doremi ~=? [62],
+  notasQueSuenan 4 doremi ~=? [64],
   notasQueSuenan 5 doremi ~=? [64],
-  notasQueSuenan 8 doremi ~=? [60],
+  notasQueSuenan 8 doremi ~=? [64],
   notasQueSuenan 9 doremi ~=? [64],
   notasQueSuenan 11 doremi ~=? [60],
+  notasQueSuenan 12 doremi ~=? [64],
   notasQueSuenan 13 doremi ~=? [64],
-  notasQueSuenan 15 doremi ~=? [64],
-  notasQueSuenan 16 doremi ~=? [64],
-  notasQueSuenan 17 doremi ~=? [],        
+  notasQueSuenan 14 doremi ~=? [64],
+  notasQueSuenan 15 doremi ~=? [64],        
+  notasQueSuenan 16 doremi ~=? [],
   notasQueSuenan 6 (Paralelo[Secuencia (Nota 60 10) (Silencio 10), Nota 50 5]) ~=? [60],
-  notasQueSuenan 7 (Paralelo[Secuencia (Nota 60 10) (Silencio 10), Paralelo[Secuencia (Nota 55 7) (Silencio 10), Nota 65 8]]) ~=? [60,55,65]
+  notasQueSuenan 7 (Paralelo[Secuencia (Nota 60 10) (Silencio 10), Paralelo[Secuencia (Nota 55 7) (Silencio 10), Nota 65 8]]) ~=? [60,65]
   ]
 
 testsEj6 = test [
@@ -338,7 +339,7 @@ testsEj6 = test [
   -- Ej b
   eventosPorNotas funcionAnonima 2 ~=? [On 0 60,On 1 64,Off 2 60,Off 2 64],
   eventosPorNotas funcionAnonima 3 ~=? [On 0 60,On 1 64,Off 2 60,Off 2 64,On 3 67,Off 4 67],
-  eventosPorNotas (funcionLoca doremi) 5 ~=? [On 0 60,Off 4 60,On 4 62,Off 5 62,On 5 64,Off 6 64],
+  eventosPorNotas (funcionLoca doremi) 5 ~=? [On 0 60, Off 3 60, On 3 62, Off 4 62, On 4 64, Off 6 64],
   eventosPorNotas (\x-> []) 3 ~=? [],
   eventosPorNotas (\x-> [60,61]) 1000 ~=? [On 0 60,On 0 61,Off 1001 60,Off 1001 61],
   eventosPorNotas funcionAnonima2 0 ~=? [],
@@ -348,8 +349,9 @@ testsEj6 = test [
   eventosPorNotas funcionAnonima2 4 ~=? [On 1 60, On 1 61, On 1 62, Off 2 60, Off 2 62, On 2 63, Off 3 63, On 4 64, Off 5 61, Off 5 64],
   eventosPorNotas funcionAnonima2 5 ~=? [On 1 60, On 1 61, On 1 62, Off 2 60, Off 2 62, On 2 63, Off 3 63, On 4 64, Off 5 61, Off 5 64],
   -- ej c TODO:  revisar
-  eventos doremi 5 ~=? [On 0 60, Off 4 60, On 4 62, Off 5 62, On 5 64, Off 6 64],
-  eventos acorde 6 ~=? [On 0 60, On 4 64, Off 7 60, Off 7 64],
-  eventos (Secuencia (Silencio 1) (Nota 50 5)) 1 ~=? [],
-  eventos (Secuencia (Silencio 1) (Nota 50 5)) 2 ~=? [On 2 50, Off 3 50]
+  eventos doremi 5 ~=? [On 0 60, Off 3 60, On 3 62, Off 4 62, On 4 64, Off 6 64],
+  eventos acorde 6 ~=? [On 0 60, On 3 64, On 6 67, Off 7 60, Off 7 64, Off 7 67],
+  eventos (Secuencia (Silencio 1) (Nota 50 5)) 0 ~=? [],
+  eventos (Secuencia (Silencio 1) (Nota 50 5)) 1 ~=? [On 1 50, Off 2 50],
+  eventos (Secuencia (Silencio 1) (Nota 50 5)) 2 ~=? [On 1 50, Off 3 50]
   ]
