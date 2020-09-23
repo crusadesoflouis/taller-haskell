@@ -80,6 +80,7 @@ hPutMidiEvent h event
 midiCreateFile :: String -> [MidiEvent] -> IO ()
 midiCreateFile fileName midiEvents = do
   h <- openBinaryOutputFile fileName
+  hSetEncoding h latin1
   hPutMidiHeader h $ MidiHeader 0 1 division
   hPutMidiTrack h $ MidiTrack midiEvents
   hFlush h
