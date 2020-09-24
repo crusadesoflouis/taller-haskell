@@ -1,3 +1,11 @@
+---------------------------
+--      Integrantes		---
+---------------------------
+-- Arroyo, Luis			  |
+-- Godoy, Javier          |
+-- Humpiri, Juan Carlos	  |
+--------------------------
+
 import Data.List
 import Test.HUnit
 import Midi.Midi
