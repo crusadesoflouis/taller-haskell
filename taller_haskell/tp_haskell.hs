@@ -78,50 +78,6 @@ invertir = foldMelodia
 -- En instantes menores que 0 no suena ninguna nota. Se puede usar recursión explícita. Resaltar las partes del código que hacen que no se ajuste al esquema fold.
 --Sugerencia: usar concatMap.
 
-
--- TODO: No se puede usar foldMelodia, porque al hacer recursión sobre la estructura de  
--- datos Secuencia de Melodía, el foldMelodia nos devuelve dos listas de tonos,y sobre 
--- estas no podemos saber la duración total de cada una de ellas, para así devolver 
--- alguna lista de Tono sobre recursión que estamos haciendo.
-
--- Otra cosa interesante a notar, es que el Instante (n) que nos pasan no lo podemos 
--- modificar y reutilizar para hacer la recursión sobre la secuencia de la melodía y 
--- por ende no podemos elegir qué tonos vamos a devolver en la recuencion en un 
--- instante (n -durancionTotal)
-
--- Otra cosa que también vemos que no podemos hacer, es intentar devolver el caso cuando
--- el Instante (n) toma valores negativos, a la hora de hacer la recursion con foldMelodia.
-
--- notasQueSuenan' :: Melodia->Instante->[Tono]
--- notasQueSuenan m n = foldMelodia 
--- (\d -> []) 
--- (\t d -> if (n<d) then [t] else [] ) 
--- (\rec1 rec2 -> if (duracionTotal rec1) > n then rec1 else loQueQuieroDevolver)
--- (\lrec ->  concatMap (lrec))
--- where loQueQuieroDevolver rec2
-
--- A mi me gustaria devolver esto:
--- where loQueQuieroDevolver = notasQueSuenan (n - (duracionTotal rec1)  rec2)
-
--- TODO: En este caso si ahora nuestra función notasQueSuena, devolviera un función que va de 
--- Instante a lista de tonos, en este caso sí podemos estar modificando en cada paso de 
--- la recursión el instante (n), ya que en paso recursión debemos instanciar la recursión 
--- para obtener la lista de tonos.
-
--- Pero todavía tenemos el problema que habíamos tratado antes, sobre la duracionTotal 
--- de una melodía, para cuando debemos devolver la lista de tonos para la estructura de 
--- Secuecnia melodia1 melodia2, por ende tampoco podemos resolver el problema, intentado 
--- aplicar evaluación parcial.
-
--- En caso, si podemos resolver el problema, que se da cuando el Instante (n) toma valores negativos.
-
--- notasQueSuenan' :: Melodia->(Instante->[Tono])
--- notasQueSuenan' m = foldMelodia (\d -> \instan -> []) 
--- (\t d -> \instan ->  if instan < 0 then [] else (if (instan<d) then [t] else []) )
--- (\rec1 rec2 -> \instan -> if instan < 0 then [] else (if (duracionTotal rec1) > instan then rec1 instan else rec2 (instan - (duracionTotal rec1))))
--- (\lrec -> \instan -> if instan < 0 then [] else concatMap (lrec instan))
--- duracionTotal rec1
-
 notasQueSuenan :: Instante->Melodia->[Tono]
 notasQueSuenan n _ | n < 0 = []  
 notasQueSuenan n (Silencio d) = []
@@ -131,6 +87,55 @@ notasQueSuenan n (Paralelo xs) = concatMap (\x -> notasQueSuenan n x ) xs
 
 filtrarDuplicados :: (Eq a) => [a] -> [a]
 filtrarDuplicados = foldr (\x recur -> x : (filter (/= x) recur)) []
+
+-------------------------------------------------
+-- 	COMENTARIO 1: No se puede usar foldMelodia---
+-------------------------------------------------
+-- Porque al hacer recursión sobre la estructura de  
+-- datos Secuencia de Melodía, el foldMelodia nos devuelve dos listas de tonos,y sobre 
+-- estas no podemos saber la duración total de cada una de ellas, para así devolver 
+-- alguna lista de Tono sobre la recursión que estamos haciendo.
+
+-- Otra cosa interesante a notar, es que el Instante (n) que nos pasan no lo podemos 
+-- modificar y reutilizar para hacer la recursión sobre la secuencia de la melodía y 
+-- por ende no podemos elegir qué tonos vamos a devolver en la recursion en un 
+-- instante (n -durancionTotal)
+
+-- Otra cosa que también vemos que no podemos hacer, es intentar devolver el caso cuando
+-- el Instante (n) toma valores negativos, a la hora de hacer la recursion con foldMelodia.
+
+-------------------------------------------------------------
+-- COMENTARIO 2: notasQueSuenan' :: Melodia->Instante->[Tono]
+-------------------------------------------------------------
+-- notasQueSuenan' m n = foldMelodia 
+-- (\d -> []) 
+-- (\t d -> if (n<d) then [t] else [] ) 
+-- (\rec1 rec2 -> if (duracionTotal rec1) > n then rec1 else loQueQuieroDevolver)
+-- (\lrec ->  concatMap (lrec))
+-- where loQueQuieroDevolver rec2
+
+-- Nos gustaria devolver esto:
+-- where loQueQuieroDevolver = notasQueSuenan (n - (duracionTotal rec1)  rec2)
+
+-- En este caso si nuestra función notasQueSuena, devolviera un función que va de 
+-- (Instante -> [Tono]), en este caso sí podemos estar modificando en cada paso de 
+-- la recursión el instante "n", ya que en cada paso de recursión debemos instanciar
+-- la recursión para obtener la lista de tonos.
+-- Pero todavía tenemos el problema que habíamos tratado en el "COMENTARIO 1", sobre la
+-- duracionTotal de una melodía, para cuando debemos devolver la lista de tonos para la
+-- estructura de (Secuecnia melodia1 melodia2), por ende tampoco podemos resolver el problema
+-- intentado aplicar evaluación parcial.
+
+-- Otro punto importante a destacar, es que usando notasQueSuenan', si podemos resolver el problema
+-- que se da cuando el Instante (n) toma valores negativos. A continuación presentamos una forma de
+-- cómo resolverlo:
+
+-- notasQueSuenan' :: Melodia->(Instante->[Tono])
+-- notasQueSuenan' m = foldMelodia (\d -> \instan -> []) 
+-- (\t d -> \instan ->  if instan < 0 then [] else (if (instan<d) then [t] else []) )
+-- (\rec1 rec2 -> \instan -> if instan < 0 then [] else (if (duracionTotal rec1) > instan then rec1 instan else rec2 (instan - (duracionTotal rec1))))
+-- (\lrec -> \instan -> if instan < 0 then [] else concatMap (lrec instan))
+-- duracionTotal rec1
 
 
 -- Ejercicio 6
