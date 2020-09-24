@@ -31,19 +31,12 @@ canon :: Duracion->Integer->Melodia->Melodia
 canon duracion repeticion m1 = foldNat (m1)
                                 (\rec -> superponer  m1 duracion rec ) (repeticion-1)
 
---(a -> a -> a) -> [a] -> a
-secuenciar :: [Melodia] -> Melodia--Se asume que la lista no es vacía.
+secuenciar :: [Melodia] -> Melodia --Se asume que la lista no es vacía.
 secuenciar = foldl1 (\head acum -> Secuencia head acum)
---secuenciar = foldl1 (\acum head -> Secuencia head acum) l el primer elemento a ejecutar es la cabeza
--- r el primer elemento a ejecutar es la cola
-
-
 
 -- Ejercicio 2
---(Integer -> Melodia -> Melodia) -> Melodia -> [Int] -> Melodia
 canonInfinito :: Duracion->Melodia->Melodia
-canonInfinito d m = foldr (\x rec ->Paralelo[Secuencia (Silencio d) m,rec]) m [1..]
-
+canonInfinito d m = foldr (\x rec ->Paralelo[Secuencia m (Silencio d),rec]) m [1..]
 
 
 -- Ejercicio 3
@@ -82,18 +75,59 @@ invertir = foldMelodia
                   (\lrec ->  Paralelo lrec)
 
 -- Ejercicio 5
--- TODO agregar comentarios por qué no es posible usar foldMelodia
--- TODO Indicar en comentarios por qué no es posible logr  "notasQueSuenan' :: Melodia ! ( Instante ! [Tono]), es decir haciendo que el tipo de lo que devuelve el fold sean funciones"
-
 -- En instantes menores que 0 no suena ninguna nota. Se puede usar recursión explícita. Resaltar las partes del código que hacen que no se ajuste al esquema fold.
 --Sugerencia: usar concatMap.
+
+
+-- TODO: No se puede usar foldMelodia, porque al hacer recursión sobre la estructura de  
+-- datos Secuencia de Melodía, el foldMelodia nos devuelve dos listas de tonos,y sobre 
+-- estas no podemos saber la duración total de cada una de ellas, para así devolver 
+-- alguna lista de Tono sobre recursión que estamos haciendo.
+
+-- Otra cosa interesante a notar, es que el Instante (n) que nos pasan no lo podemos 
+-- modificar y reutilizar para hacer la recursión sobre la secuencia de la melodía y 
+-- por ende no podemos elegir qué tonos vamos a devolver en la recuencion en un 
+-- instante (n -durancionTotal)
+
+-- Otra cosa que también vemos que no podemos hacer, es intentar devolver el caso cuando
+-- el Instante (n) toma valores negativos, a la hora de hacer la recursion con foldMelodia.
+
+-- notasQueSuenan' :: Melodia->Instante->[Tono]
+-- notasQueSuenan m n = foldMelodia 
+-- (\d -> []) 
+-- (\t d -> if (n<d) then [t] else [] ) 
+-- (\rec1 rec2 -> if (duracionTotal rec1) > n then rec1 else loQueQuieroDevolver)
+-- (\lrec ->  concatMap (lrec))
+-- where loQueQuieroDevolver rec2
+
+-- A mi me gustaria devolver esto:
+-- where loQueQuieroDevolver = notasQueSuenan (n - (duracionTotal rec1)  rec2)
+
+-- TODO: En este caso si ahora nuestra función notasQueSuena, devolviera un función que va de 
+-- Instante a lista de tonos, en este caso sí podemos estar modificando en cada paso de 
+-- la recursión el instante (n), ya que en paso recursión debemos instanciar la recursión 
+-- para obtener la lista de tonos.
+
+-- Pero todavía tenemos el problema que habíamos tratado antes, sobre la duracionTotal 
+-- de una melodía, para cuando debemos devolver la lista de tonos para la estructura de 
+-- Secuecnia melodia1 melodia2, por ende tampoco podemos resolver el problema, intentado 
+-- aplicar evaluación parcial.
+
+-- En caso, si podemos resolver el problema, que se da cuando el Instante (n) toma valores negativos.
+
+-- notasQueSuenan' :: Melodia->(Instante->[Tono])
+-- notasQueSuenan' m = foldMelodia (\d -> \instan -> []) 
+-- (\t d -> \instan ->  if instan < 0 then [] else (if (instan<d) then [t] else []) )
+-- (\rec1 rec2 -> \instan -> if instan < 0 then [] else (if (duracionTotal rec1) > instan then rec1 instan else rec2 (instan - (duracionTotal rec1))))
+-- (\lrec -> \instan -> if instan < 0 then [] else concatMap (lrec instan))
+-- duracionTotal rec1
 
 notasQueSuenan :: Instante->Melodia->[Tono]
 notasQueSuenan n _ | n < 0 = []  
 notasQueSuenan n (Silencio d) = []
 notasQueSuenan n (Nota t d) = if (n<d) then [t] else []
-notasQueSuenan n (Secuencia m1 m2) = if (duracionTotal m1) > n then filtrarDuplicados (notasQueSuenan n m1) else filtrarDuplicados (notasQueSuenan (n - (duracionTotal m1)) m2)
-notasQueSuenan n (Paralelo xs) = filtrarDuplicados (concatMap (\x -> notasQueSuenan n x ) xs)
+notasQueSuenan n (Secuencia m1 m2) = if (duracionTotal m1) > n then notasQueSuenan n m1 else notasQueSuenan (n - (duracionTotal m1)) m2
+notasQueSuenan n (Paralelo xs) = concatMap (\x -> notasQueSuenan n x ) xs
 
 filtrarDuplicados :: (Eq a) => [a] -> [a]
 filtrarDuplicados = foldr (\x recur -> x : (filter (/= x) recur)) []
@@ -136,6 +170,14 @@ funcionAnonima2 = (\x -> case x of
 
 funcionLoca :: Melodia-> Instante -> [Tono]
 funcionLoca m = flip notasQueSuenan m
+
+
+takeM :: Integer -> Melodia -> Melodia
+
+takeM _ (Silencio d) = Silencio d
+takeM _ (Nota t d) = Nota t d
+takeM n (Secuencia m1 m2) = Secuencia (takeM (n-1) m1) (takeM (n-1) m2)
+takeM n (Paralelo xs) = Paralelo (map (\x -> takeM (n-1) x) xs)
 
 -- GENERADOR
 
@@ -277,12 +319,14 @@ testsEj1 = test [
   Secuencia (Secuencia (Secuencia (Nota 60 1) (Nota 60 2)) (Silencio 3)) (Paralelo[Nota 60 4, Nota 60 5]) ~=? secuenciar [Nota 60 1, Nota 60 2, Silencio 3, Paralelo[Nota 60 4, Nota 60 5]]
   ]
 testsEj2 = test [
-  2 ~=? 1+1,
-  4 ~=? 2*2
+  [60,60,60,60,60] ~=? take 5 (notasQueSuenan 0 (canonInfinito 2 (Paralelo [Nota 60 3, Secuencia (Silencio 3) (Nota 62 4)]))),
+  [62,62,62,62,62] ~=? take 5 (notasQueSuenan 4 (canonInfinito 2 (Paralelo [Nota 60 3, Secuencia (Silencio 3) (Nota 62 4)])))
   ]
 testsEj3 = test [
-  2 ~=? 1+1,
-  4 ~=? 2*2
+  -- funcion identidad hecha con foldMelodia
+  Secuencia (Secuencia (Secuencia (Secuencia (Secuencia (Secuencia (Nota 120 3) (Nota 124 1)) (Nota 128 3)) (Nota 120 1)) (Nota 128 2)) (Nota 120 2)) (Nota 128 4) ~=? foldMelodia (\d -> Silencio d ) (\t d -> Nota t d ) (\rec1 rec2 -> Secuencia rec1 rec2) (\lrec ->  Paralelo lrec) (Secuencia (Secuencia (Secuencia (Secuencia (Secuencia (Secuencia (Nota 120 3) (Nota 124 1)) (Nota 128 3)) (Nota 120 1)) (Nota 128 2)) (Nota 120 2)) (Nota 128 4))
+  -- Cabe aclarar que tanto la funciones mapMelodia, transportar, duracionToal, cambiarVelocidad e invertir
+  -- estan testeadas y pero ademas depende foldMelodia, por eso no hicimos mas tests
   ]
 testsEj4 = test [
   -- Ej a
