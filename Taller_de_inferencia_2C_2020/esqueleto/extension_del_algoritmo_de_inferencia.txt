@@ -1,0 +1,41 @@
+
+
+
+W([]) = Vacio |> []_s1: [s1] donde s1 es variable libre
+
+--------------------------------------------------------------------------
+
+
+W(U::V) = SGamma_1 Union SGamma_2 |> S(M::N) : S[roho]
+
+W(U) = Gamma_1 |> M : roho
+W(V) = Gamma_2 |> N : phi
+
+
+
+S = MGU {phi =.= [roho]} union {sigma1 = sigma2 | x:sigma1 E gamma1 and x:sigma2 E gamma2}
+
+
+---------------------------------------------------------------------------------------
+W(zip U and V with x,y ----> Z) = SGamma_1 Union SGamma_2 Union SGamma_3' |>   
+										zip M and N with x,y ----> O : S[sigma]
+
+
+W(U) = Gamma_1 |> M : roho
+W(V) = Gamma_2 |> N : phi
+W(Z) = Gamma_3 |> O : sigma
+
+t' = | alpha si x:t' E Gamma_3
+	 | s1    con s1 varible fresca
+	 
+t'' = | alpha si y:t'' E Gamma_3
+	  | s2    con s2 varible fresca
+
+S = MGU {roho =.= [t'], phi =.= [t'']} union {sigma1 = sigma2 | x:sigma1 E gamma1 and x:sigma2 E gamma2}
+union  {sigma3 = sigma4 | x:sigma3 E gamma1 and x:sigma4 E Gamma_3'}
+union {sigma5 = sigma6 | x:sigma5 E gamma2 and x:sigma6 E Gamma_3'}
+
+Gamma_3' = Gamma_3 - {x,y}
+
+
+
