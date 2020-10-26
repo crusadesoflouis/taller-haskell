@@ -129,38 +129,70 @@ infer' (ConsExp u v)          n = case infer' u n of
 											res@(Error _) -> res
 									res@(Error _) -> res
 									
-infer' (ZipWithExp u v x y w) n = undefined
-									
--- infer' (ZipWithExp u v x y w) n =  case infer' u n of
-									-- OK (n_u', (c_u', u', t_u')) ->
-										-- case infer' v n_u' of
-											-- OK (n_v', (c_v', v', t_v')) ->
-												-- case infer' w n_v' of
-													-- OK (n_w', (c_w', w', t_w')) ->
-														-- case mgu ([(t_u',TList vl),(t_v', TList v1)] ++ (auxiliar c_u' c_v') ++ (auxiliar c_u' (removeC (removeC c_w' x) y)) ++ (auxiliar c_v' (removeC (removeC c_w' x) y))) of
-															-- UOK subst -> OK (n_v'+1,
-																				-- (
-																				 -- joinC [subst <.> c_u',subst <.> c_v'],
-																				 -- subst <.> ConsExp u' v',
-																				 -- subst <.>(TList t_u')
-																				-- )
-																			-- )
-															-- UError u1 u2 -> uError u1 u2
-											-- res@(Error _) -> res
-									-- res@(Error _) -> res
+infer' (ZipWithExp u v x y w) n =  case infer' u n of
+									OK (n_u', (c_u', u', t_u')) ->
+										case infer' v n_u' of
+											OK (n_v', (c_v', v', t_v')) ->
+												case infer' w n_v' of             ---- rho = [tipo de x]
+													OK (n_w', (c_w', w', t_w')) -> --- t_u' =rho t_v' = phi t_w' = sigma 
+															if (elem x (domainC c_w')) && (elem y (domainC c_w')) then 
+																case mgu ([(t_u',TList(evalC c_w' x)),(t_v', TList(evalC c_w' y))] ++ (auxiliar c_u' c_v') ++ (auxiliar c_u' (removeC (removeC c_w' x) y)) ++ (auxiliar c_v' (removeC (removeC c_w' x) y))) of
+																UOK subst -> OK (n_v',
+																					(
+																					 joinC [subst <.> c_u',subst <.> c_v',subst <.> removeC (removeC c_w' x) y],
+																					 subst <.> ZipWithExp u' v' x y w',
+																					 subst <.>(TList t_w')
+																					)
+																				)
+																UError u1 u2 -> uError u1 u2
+															else
+																if elem x (domainC c_w') then
+																	case mgu ([(t_u',TList(evalC c_w' x)),(t_v', TList(nuevaTipo n_v' c_w' y))] ++ (auxiliar c_u' c_v') ++ (auxiliar c_u' (removeC (removeC c_w' x) y)) ++ (auxiliar c_v' (removeC (removeC c_w' x) y))) of
+																	UOK subst -> OK (n_v'+1,
+																					(
+																					 joinC [subst <.> c_u',subst <.> c_v',subst <.> removeC (removeC c_w' x) y],
+																					 subst <.> ZipWithExp u' v' x y w',
+																					 subst <.>(TList t_w')
+																					)
+																				)
+																	UError u1 u2 -> uError u1 u2
+																else
+																	if elem y (domainC c_w') then
+																		case mgu ([(t_u',TList (nuevaTipo n_v' c_w' x)),(t_v',TList (evalC c_w' y))] ++ (auxiliar c_u' c_v') ++ (auxiliar c_u' (removeC (removeC c_w' x) y)) ++ (auxiliar c_v' (removeC (removeC c_w' x) y))) of
+																		UOK subst -> OK (n_v'+1,
+																					(
+																					 joinC [subst <.> c_u',subst <.> c_v',subst <.> removeC (removeC c_w' x) y],
+																					 subst <.> ZipWithExp u' v' x y w',
+																					 subst <.>(TList t_w')
+																					)
+																				)
+																		UError u1 u2 -> uError u1 u2
+																	else
+																		case mgu ([(t_u',TList (nuevaTipo n_v' c_w' x)),(t_v', TList (nuevaTipo (n_v'+1) c_w' y))] ++ (auxiliar c_u' c_v') ++ (auxiliar c_u' (removeC (removeC c_w' x) y)) ++ (auxiliar c_v' (removeC (removeC c_w' x) y))) of
+																		UOK subst -> OK (n_v'+2,
+																					(
+																					 joinC [subst <.> c_u',subst <.> c_v',subst <.> removeC (removeC c_w' x) y],
+																					 subst <.> ZipWithExp u' v' x y w',
+																					 subst <.>(TList t_w')
+																					)
+																				)
+																		UError u1 u2 -> uError u1 u2
+													res@(Error _) -> res					
+											res@(Error _) -> res
+									res@(Error _) -> res
 		
 --W(U) = Gamma_1 |> M : roho
 --W(V) = Gamma_2 |> N : phi		
 -- {roho =.= [t'], phi =.= [t'']}
--- infer' (LamExp x _ e)         n = case infer' e n of
--- 									OK (n', (c', e', t')) -> OK (nuevaVariable n' c' x,
---																		(
---																		 removeC c' x,
---																		 LamExp x (nuevaTipo n' c' x) e',
---																		 TFun (nuevaTipo n' c' x) t'
---																		)
---																)
---									res@(Error _) -> res
+{-infer' (LamExp x _ e)         n = case infer' e n of
+									OK (n', (c', e', t')) -> OK (nuevaVariable n' c' x,
+																		(
+																		 removeC c' x,
+																		 LamExp x (nuevaTipo n' c' x) e',
+																		 TFun (nuevaTipo n' c' x) t'
+																		)
+																)
+									res@(Error _) -> res-}
 
 
 
