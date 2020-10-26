@@ -17,8 +17,8 @@ S = MGU {phi =.= [roho]} union {sigma1 = sigma2 | x:sigma1 E gamma1 and x:sigma2
 
 
 ---------------------------------------------------------------------------------------
-W(zip U and V with x,y ----> Z) = SGamma_1 Union SGamma_2 Union SGamma_3' |>   
-										zip M and N with x,y ----> O : S[sigma]
+W(zip U and V with x,y ----> Z) = S(Gamma_1) Union S(Gamma_2) Union S(Gamma_4) |>   
+										S(zip M and N with x,y ----> O) : S([sigma])
 
 
 W(U) = Gamma_1 |> M : roho
@@ -31,11 +31,10 @@ t' = | alpha si x:t' E Gamma_3
 t'' = | alpha si y:t'' E Gamma_3
 	  | s2    con s2 varible fresca
 
-S = MGU {roho =.= [t'], phi =.= [t'']} union {sigma1 = sigma2 | x:sigma1 E gamma1 and x:sigma2 E gamma2}
-union  {sigma3 = sigma4 | x:sigma3 E gamma1 and x:sigma4 E Gamma_3'}
-union {sigma5 = sigma6 | x:sigma5 E gamma2 and x:sigma6 E Gamma_3'}
+S = MGU {roho =.= [t'], phi =.= [t'']} union 
+{sigma1 = sigma2 | x:sigma1 E gamma_i and x:sigma2 E gamma_j, para todo i,j E {1,2,4}}
 
-Gamma_3' = Gamma_3 - {x,y}
+Gamma_4 = Gamma_3 - {x,y}
 
 
 
