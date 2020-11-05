@@ -154,22 +154,50 @@ function ejercicio6() {
 	}
 }
 
+function estadoFueVistoCompleto(mapEstados, estado)
+{
+	function cantEtiquetas(estado){
+		let cant = 0;
+		for (etiqueta in estado.transiciones) {
+			cant++;
+		}
+		return cant;
+	}
+	return mapEstados.get(estado)!= undefined && mapEstados.get(estado) == cantEtiquetas(estado)
+}
+
 
 // Ejercicio 7
 function ejercicio7() {
   // Completar
+  estadosVistos = new Map();
   esDeterministico = function (estado){
+	  // // si algún estado tiene una etiqueta que lleva a más de un estado, entonces en ND
+	  // for (let etiqueta in estado.transiciones) {
+	  	// if(Array.isArray(estado.transiciones[etiqueta])){
+	  		// return false
+		// }
+	  // }
+	  //Por cada etiqueta
 	  for (let etiqueta in estado.transiciones) {
 	  	if(Array.isArray(estado.transiciones[etiqueta])){
-	  		return false
+			estadosVistos = new Map();
+	  		return false;
 		}else{
-	  		if(estado !== estado.transiciones[etiqueta]){
+	  		if(estado !== estado.transiciones[etiqueta] && !estadoFueVistoCompleto(estadosVistos, estado)){
+				cantEtiquetasVistas = 1;
+				if(estadosVistos.has(estado)) {
+					cantEtiquetasVistas = estadosVistos.get(estado) + 1;
+				}	
+				estadosVistos.set(estado, cantEtiquetasVistas);
 				return esDeterministico(estado.transiciones[etiqueta])
 			}
 	  	}
 	  }
+	  estadosVistos = new Map();
 	  return true
   }
+  
 }
 // este caso falla (es un automata)
 // qa --z--> qb -z--> qa
@@ -415,10 +443,23 @@ function testEjercicio7(res) {
   let q1_deterministico = esDeterministico(q1);
   let q2_deterministico = esDeterministico(q2);
   let q3_deterministico = esDeterministico(q3);
+  q4 = {
+	  esFinal : true,
+	  transiciones :  {}
+  };
+  q5 = {
+	  esFinal : true,
+	  transiciones :  {
+	  	b : q4
+	  }
+  };
+  q4.transiciones.a = q5;
+  let q4_deterministico = esDeterministico(q4);
 
   res.write("q1" + si_o_no(q1_deterministico) + "es determinístico", q1_deterministico);
   res.write("q2" + si_o_no(q2_deterministico) + "es determinístico", q2_deterministico);
   res.write("q3" + si_o_no(q3_deterministico) + "es determinístico", q3_deterministico);
+  res.write("q4" + si_o_no(q4_deterministico) + "es determinístico", q4_deterministico);
 
   res.write("\nCreo el estado qnuevo, le agrego dos transiciones hacia q1 y q2 mediante \"z\"");
 
