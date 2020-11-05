@@ -60,7 +60,6 @@ function ejercicio3() {
 		  return estado.esFinal
 	  }else{
 		  let caracter = palabra.head()
-		  console.log(estado.transiciones[caracter])
 		  return caracter in estado.transiciones && estado.transiciones[caracter].acepta(palabra.tail())
 	  }
   }
@@ -154,49 +153,38 @@ function ejercicio6() {
 	}
 }
 
-function hayQueSeguirViendoTransiciones(mapEstados, estado, etiqueta)
-{
-	let apuntaASiMismo = estado === estado.transiciones[etiqueta];
-	let tieneOtroEstadoAVer = cantEtiquetas(estado.transiciones[etiqueta]) > 0;
-	let estadoVistoPorCompleto = estadoFueVistoCompleto(estadosVistos, estado);
-	return !apuntaASiMismo && !tieneOtroEstadoAVer && !estadoVistoPorCompleto;
-}
-	
-function estadoFueVistoCompleto(mapEstados, estado)
-{
-	return mapEstados.get(estado)!= undefined && mapEstados.get(estado) == cantEtiquetas(estado)
-}
-
-function cantEtiquetas(estado){
-	let cant = 0;
-	for (etiqueta in estado.transiciones) {
-		cant++;
-	}
-	return cant;
-}
-
 // Ejercicio 7
 function ejercicio7() {
-  estadosVistos = new Map();
   esDeterministico = function (estado){
+	  estadosPorRevisar = [];
 	  for (let etiqueta in estado.transiciones) {
-	  	if(Array.isArray(estado.transiciones[etiqueta])){
-			estadosVistos = new Map();
-	  		return false;
-		}else{
-	  		if(hayQueSeguirViendoTransiciones(estadosVistos,estado,etiqueta)){
-				cantEtiquetasVistas = 0;
-				if(estadosVistos.has(estado)) {
-					cantEtiquetasVistas = estadosVistos.get(estado);
-				}	
-				estadosVistos.set(estado, ++cantEtiquetasVistas);
-				return esDeterministico(estado.transiciones[etiqueta])
-			}
-	  	}
+		// Si alguna etiqueta es array (apunta a más de un estado) es ND
+		if(Array.isArray(estado.transiciones[etiqueta]) || !transicionEsDeterministico(estado.transiciones[etiqueta], estadosPorRevisar)) {
+			return false;
+		}
 	  }
-	  estadosVistos = new Map();
+	  // - si revisé todos los estados, y no hubo arrays, entonces es Deterministico.
 	  return true
   }
+}
+
+function transicionEsDeterministico(estado, estadosPorRevisar)
+{
+	for (let etiqueta in estado.transiciones){
+		if(Array.isArray(estado.transiciones[etiqueta])){
+			return false;
+		}
+		//Guardo los estados que ya revisé
+		if(!estadosPorRevisar.includes(estado)) {
+			estadosPorRevisar.push(estado);
+		}
+		
+		if(!estadosPorRevisar.includes(estado.transiciones[etiqueta]) &&
+			!transicionEsDeterministico(estado.transiciones[etiqueta], estadosPorRevisar)) {
+			return false;
+		}
+	}
+	return true;
 }
 
 // Test Ejercicio 1
@@ -460,8 +448,8 @@ function testEjercicio7(res) {
   res.write("q4" + si_o_no(q4_deterministico) + "es determinístico", q4_deterministico);
   res.write("q5" + si_o_no(q5_deterministico) + "es determinístico", q5_deterministico);
   
-  res.write("\nLe agrego a q5 dos transiciones a q4 y q1 con \"z\"");
-  q5.transiciones.z = [q4, q1];
+  res.write("\nLe agrego a q4 dos transiciones a q4 y q1 con \"z\", y veo si q5 que apunta a q4 es ND");
+  q4.transiciones.z = [q4, q1];
   q5_deterministico = esDeterministico(q5);
   res.write("q5" + si_o_no(q5_deterministico) + "es determinístico", !q5_deterministico);
 
@@ -474,6 +462,33 @@ function testEjercicio7(res) {
   let qnuevo_deterministico = esDeterministico(qnuevo);
 
   res.write("qnuevo" + si_o_no(qnuevo_deterministico) + "es determinístico", !qnuevo_deterministico);
+  
+  res.write("\nCreo el estado q6 sin transiciones");
+  let q6 = new Estado(true, {});
+  let q6_deterministico = esDeterministico(q6);
+  res.write("q6" + si_o_no(q6_deterministico) + "es determinístico", q6_deterministico);
+  
+  res.write("\nAgrego al estado q6 una transicion a si mismo");
+  q6.nuevaTransicion("a",q6)
+  q6_deterministico = esDeterministico(q6);
+  res.write("q6" + si_o_no(q6_deterministico) + "es determinístico", q6_deterministico);
+  
+  res.write("\nAgrego al estado q6 dos transiciones a si mismo");
+  q6.nuevaTransicion("a",q6)
+  q6.nuevaTransicion("b",q6)
+  q6_deterministico = esDeterministico(q6);
+  res.write("q6" + si_o_no(q6_deterministico) + "es determinístico", q6_deterministico);
+  
+  let q7 = new Estado(false, {});
+  let q8 = new Estado(false, {b: q7});
+  q8.nuevaTransicionND("c",q1)
+  q8.nuevaTransicionND("c",q6)
+  q7.nuevaTransicion("a", q8)
+  res.write("\nAgrego al estado q6-b->q7-a->q8-b->q7 y q8-c->q1 y q8-c->q6");
+  q6.nuevaTransicion("b",q7)
+  q6_deterministico = esDeterministico(q6);
+  res.write("q6" + si_o_no(q6_deterministico) + "es determinístico", !q6_deterministico);
+  
 }
 
 // Función auxiliar que crea un test genérico a partir de un número i y una función f
