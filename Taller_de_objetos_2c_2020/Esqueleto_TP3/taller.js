@@ -51,15 +51,19 @@ function ejercicio3() {
   	this.esFinal = esFinal;
 	this.transiciones = transiciones;
 	this.acepta = function (palabra){
-		return aceptaAxuliar(palabra, this)
+		return aceptaPalabra(palabra, this)
 	}
   };
-
-  function aceptaAxuliar(palabra, estado){
+  
+  function aceptaPalabra(palabra, estado){
 	  if(palabra === ""){
 		  return estado.esFinal
 	  }else{
 		  let caracter = palabra.head()
+		  //Caso donde estado = "{a: {}}"
+		  if(esEstadoIncorrecto(estado, caracter)) {
+			  return false;
+		  }
 		  return caracter in estado.transiciones && estado.transiciones[caracter].acepta(palabra.tail())
 	  }
   }
@@ -67,11 +71,6 @@ function ejercicio3() {
 	Object.setPrototypeOf(q2,new Estado())
 	Object.setPrototypeOf(q3,new Estado())
 	Object.setPrototypeOf(qf,new Estado())
-  // q1 = new Estado(false, {b : q2, c : q3});
-  // q1.transiciones.a = q1
-  // q2 = new Estado(true, {c : q3});
-  // q3 = new Estado(true, {});
-  // qf = new Estado(true, {});
 
 	// funcion constructora
 		// f ---> funcion.prototype ----> object.prototype ----> null
@@ -85,6 +84,14 @@ function ejercicio3() {
   // q1 ---> Estado.prototype
 	//				|----> acepta
 
+}
+
+function esEstadoIncorrecto(estado, caracter) {
+  let cant = 0;
+	for(let etiqueta in estado.transiciones[caracter]) {
+		cant++;
+	}
+	return cant == 0;
 }
 
 // Ejercicio 4
@@ -111,8 +118,8 @@ function ejercicio5() {
   // Completar
   algunoAcepta = function (s,qs){
   	if (Array.isArray(qs)){
-		const even = (element) => element.acepta(s);
-		return qs.some(even)
+		const aceptaS = (element) => element.acepta(s);
+		return qs.some(aceptaS)
 	}
   	return qs.acepta(s)
   };
@@ -128,9 +135,7 @@ function ejercicio6() {
 					return aceptaNoDeterministico(palabra, this)
 				}
 				if(Array.isArray(this.transiciones[etiqueta])) {
-					console.log(this.transiciones[etiqueta])
 					this.transiciones[etiqueta] = this.transiciones[etiqueta].concat(destino)
-					console.log(this.transiciones[etiqueta])
 				}else{
 					this.transiciones[etiqueta] = [this.transiciones[etiqueta],destino]
 				}
@@ -144,11 +149,8 @@ function ejercicio6() {
 		if (palabra === "") {
 			return estado.esFinal
 		}else{
-			if(estado.transiciones[palabra.head()] === undefined){
-				return false
-			}else{
-				return algunoAcepta(palabra.tail(),estado.transiciones[palabra.head()])
-			}
+			let caracter = palabra.head();
+			return !esEstadoIncorrecto(estado, caracter) && algunoAcepta(palabra.tail(),estado.transiciones[caracter]);
 		}
 	}
 }
@@ -163,7 +165,7 @@ function ejercicio7() {
 			return false;
 		}
 	  }
-	  // - si revisé todos los estados, y no hubo arrays, entonces es Deterministico.
+	  // si revisé todos los estados, y no hubo arrays, entonces es Deterministico.
 	  return true
   }
 }
