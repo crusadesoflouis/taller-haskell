@@ -71,21 +71,11 @@ function ejercicio3() {
 
 // Ejercicio 4
 function ejercicio4() {
-	// hay aliasing entre el obejto trasiciones
-	// Estado.prototype.nuevaTransicion = function (etiqueta, destino){
-	// 	this.transiciones[etiqueta] = destino
-	// }
-
-	// pide un nuevo espacio de memoria, para almacenar el objeto transiciones. ya no hay alising
-	// entonces cuando modificacion este nuevo objeto creado
-	// objeto padre(q1) no se modifican sus trasiciones
 	Estado.prototype.nuevaTransicion = function (etiqueta, destino){
 		let nuevasTransiciones = Object.assign({},this.transiciones)
 		nuevasTransiciones[etiqueta] = destino
 		this.transiciones = nuevasTransiciones
 	}
-
-	// q1 -----> qnuevo ----> estado.prototype ----> object.prototype ----> null
 }
 
 // Ejercicio 5
