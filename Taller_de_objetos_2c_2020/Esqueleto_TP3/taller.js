@@ -60,10 +60,6 @@ function ejercicio3() {
 		  return estado.esFinal
 	  }else{
 		  let caracter = palabra.head()
-		  //Caso donde estado = "{a: {}}"
-		  if(esEstadoIncorrecto(estado, caracter)) {
-			  return false;
-		  }
 		  return caracter in estado.transiciones && estado.transiciones[caracter].acepta(palabra.tail())
 	  }
   }
@@ -71,27 +67,6 @@ function ejercicio3() {
 	Object.setPrototypeOf(q2,new Estado())
 	Object.setPrototypeOf(q3,new Estado())
 	Object.setPrototypeOf(qf,new Estado())
-
-	// funcion constructora
-		// f ---> funcion.prototype ----> object.prototype ----> null
-		// new f ----> f.prototype ----> object.prototype ----> null
-
-	// q1 -----> qnuevo ----> estado.prototype ----> object.prototype ----> null
-	// q1 ----> estado.prototype ----> object.prototype ----> null
-	//	|
-	// qnuevo
-
-  // q1 ---> Estado.prototype
-	//				|----> acepta
-
-}
-
-function esEstadoIncorrecto(estado, caracter) {
-  let cant = 0;
-	for(let etiqueta in estado.transiciones[caracter]) {
-		cant++;
-	}
-	return cant == 0;
 }
 
 // Ejercicio 4
@@ -115,7 +90,6 @@ function ejercicio4() {
 
 // Ejercicio 5
 function ejercicio5() {
-  // Completar
   algunoAcepta = function (s,qs){
   	if (Array.isArray(qs)){
 		const aceptaS = (element) => element.acepta(s);
@@ -146,14 +120,16 @@ function ejercicio6() {
 	}
 
 	function aceptaNoDeterministico(palabra, estado){
-		if (palabra === "") {
+		if (palabra === "")
 			return estado.esFinal
-		}else{
-			let caracter = palabra.head();
-			return !esEstadoIncorrecto(estado, caracter) && algunoAcepta(palabra.tail(),estado.transiciones[caracter]);
-		}
+
+		if(estado.transiciones[palabra.head()] === undefined)
+			return false
+		
+		return algunoAcepta(palabra.tail(), estado.transiciones[palabra.head()])
 	}
 }
+
 
 // Ejercicio 7
 function ejercicio7() {
