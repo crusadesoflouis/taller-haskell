@@ -50,19 +50,26 @@ armarEjercito(L,Cantidad) :-
 
 ejercito(E) :- desde(1, X), armarEjercito(E,X).
 
-% Reversibilidad:
+% Reversibilidad: Sobre la reversibilidad de ejercito, es que es reversible,
+% simpre cuando pongamos la estructura de un ejercito, ejemplo: ejercito(E) o ejercito([(X,C)])
+% o ejercito([(lancero,3)]) ----> de vuelve true.
 
 % Ej 3 : instancia una lista de edificios necesarios para el ejército
 
+edificiosNecesarios([],[]).
 edificiosNecesarios([(X,_)|L],Ed) :- edificiosNecesarios(L,Ed2), entrena(X,Y)
 									,not(member(Y,Ed2)), append([Y],Ed2,Ed).									
 edificiosNecesarios([(X,_)|L],Ed) :- edificiosNecesarios(L,Ed), entrena(X,Y), member(Y,Ed).
 
-% Reversibilidad: no tiene sentido, por que no obtenemos instancias validas del ejercito.
+% Reversibilidad: 
+% el parametro Ej no es reversible, por que, no devuelve instancias validas de ejercitos,
+% es decir, la cantidad de un batallon es una varible y no un valor.
+% el parametro Ed es reversible.
 
 edificiosNecesarios2(Ej,Ed) :- nonvar(Ej), edificiosNecesarios(Ej,Ed).
 edificiosNecesarios2(Ej,Ed) :- var(Ej), ejercito(Ej), edificiosNecesarios(Ej,Ed).
 
+% el parametro Ej en el predicado edificiosNecesarios2, es reversible.
 
 % Ej 4 : índice de superioridad para unidades
 % ids ( +A , +B , -I )
@@ -83,16 +90,11 @@ ids(guerrillero,  lancero,      1.1).
 ids(guerrillero,  arquero,      2).
 
 ids(X,X,1).
-% ids(X,Y,R) :- ids(Y,X,I), R is 1/I, !.
-ids(arquero,jinete,0.67).
-ids(guerrillero,jinete,2).
-ids(jinete,lancero,0.5).
-ids(arquero,lancero,1.6666666666666667).
-ids(lancero,guerrillero,0.9090909090909091).
-ids(arquero,guerrillero,0.5).
+ids(X,Y,I) :- unidad(X), unidad(Y), ids(Y,X,R), I is 1/R, !.
 
 
-% Reversibilidad:
+% Reversibilidad: 
+% El parametro I es reversible.
 
 % Ej 5
 % ids ( +A , +B , -I )
@@ -105,24 +107,91 @@ gana([A|AS],[B|BS]) :- gana(A,B), gana([A|AS],BS), !.
 gana([A|AS],[B|BS]) :- gana(B,A), gana(AS,[B|BS]), !.
 
 % ganaA ( ?A , +B , ?N )
-% Recordar que un batallón no puede tener más de 5 unidades y un ejército no puede tener más de 5 unidades
-% entre todos los batallones que lo componen.
-
 
 tamanoDeEjercito([],0).
-tamanoDeEjercito([(X,C)|L],R) :- tamanoDeEjercito(L,Rec), R is Rec + C.
+tamanoDeEjercito([(_,C)|L],R) :- tamanoDeEjercito(L,Rec), R is Rec + C.
 
+head([X|_],X). 
 
-% ganaA(A,B,N) :- var(N),tamanoDeEjercito(B,M), between(1,M,N),armarEjercito(A,N), gana(A,B), list_to_set(A,Z).
-% ganaA(A,B,N) :- nonvar(N), between(1,N,Ite), armarEjercito(A,Ite), gana(A,B), N is Ite, list_to_set(A,Z).
+% batallon vs batallon con N variable libre
+ganaA(A,(X,M),N) :- 
+	setof(A,
+			(var(N), 
+			between(1,M,N),
+			armarEjercito(Z,N), 
+			length(Z,1),
+			head(Z,A),
+			gana(A,(X,M))),
+		XS), 
+	member(A,XS).
+
+% batallon vs batallon con N instanciada
+ganaA(A,(X,M),N) :- 
+	setof(A,
+			(nonvar(N),
+			armarEjercito(Z,N),
+			length(Z,1),
+			head(Z,A),
+			gana(A,(X,M))),
+		XS), 
+	member(A,XS).
+
+% ejercito vs ejercito con N variable libre
+ganaA(A,B,N) :- 
+	setof(A,
+			(var(N),
+			is_list(B),
+			tamanoDeEjercito(B,M), 
+			between(1,M,N),
+			armarEjercito(A,N), 
+			gana(A,B)),
+		XS), 
+	member(A,XS).
+	
+% ejercito vs ejercito con N instanciada
+ganaA(A,B,N) :- 
+	setof(A,
+			(nonvar(N),
+			is_list(B), 
+			armarEjercito(A,N), 
+			gana(A,B)),
+		XS), 
+	member(A,XS).
 
 % ¿Usaron "ejercito"? ¿por qué?
+% no usamos ejercito, ya que no queriamos todos los ejercitos de todos los tamaños,
+% si no, que queriamos armar ejercitos de una cierta cantidad.
 
 % Ej 6 : instancia un pueblo para derrotar a un ejército enemigo
 % puebloPara ( +En , ?A , -Ed , -Ej )
 
+puebloPara(En,A,Ed,Ej) :- 
+							nonvar(A),
+							ganaA(Ej,En,_),
+							edificiosNecesarios(Ej,Ed),
+							costo(Ej,Costoej),
+							costo(Ed,Costoed),
+							Recursos is A *50,
+							Recursos >= Costoej + Costoed.
+
+puebloPara(En,A,Ed,Ej) :- 
+							var(A),						
+							ganaA(Ej,En,_),
+							edificiosNecesarios(Ej,Ed),
+							costo(Ej,Costoej),
+							costo(Ed,Costoed),
+							Sumcosto is Costoej + Costoed,
+							Costototal is Sumcosto /50,
+							A is ceiling(Costototal).
+							
+
 % Ej 7 : pueblo óptimo (en cantidad de aldenos necesarios)
 % puebloOptimoPara( +En , ?A , -Ed , -Ej )
+
+hayPuebloMasOptimo(En,A1,Ed,Ej,A) :-  puebloPara(En,A1,Ed,Ej), A1 < A.
+
+puebloOptimoPara(En,A,Ed,Ej) :- puebloPara(En,A,Ed,Ej), not(hayPuebloMasOptimo(En,_,Ed,Ej,A)).
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TESTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -138,12 +207,12 @@ testCosto(8) :- costo([cuartel, arqueria], 630).
 testCosto(9) :- costo([(lancero, 1), (arquero, 77), (jinete, 2), (arquero, 8)], 7970).
 testCosto(10) :- costo([(guerrillero, 2),(lancero, 3), (guerrillero, 4), (jinete, 5)], 1260).
 
-cantidadTestsEjercito(5).
+cantidadTestsEjercito(4).
 testEjercito(1) :- ejercito([(lancero, 1), (jinete, 3)]), !.
 testEjercito(2) :- ejercito([(jinete, 5)]), !.
 testEjercito(3) :- ejercito([(guerrillero, 4), (guerrillero, 2)]), !.
 testEjercito(4) :- ejercito([(arquero, 1)]), !.
-testEjercito(5) :- ejercito([(arquero, 4), (guerrillero, 3), (jinete, 12), (lancero, 5)]), !.
+% testEjercito(5) :- ejercito([(arquero, 4), (guerrillero, 3), (jinete, 12), (lancero, 5)]), !.
 
 cantidadTestsEdificios(5).
 testEdificios(1) :- edificiosNecesarios([(arquero, 2), (guerrillero, 2)], [arqueria]).
@@ -172,9 +241,9 @@ testGanaA(1) :- ganaA(E, (jinete, 3), 3), gana(E, (jinete, 3)), !.
 testGanaA(2) :- not(ganaA(_, (guerrillero, 7), 6)).
 testGanaA(3) :- ganaA(E, [(arquero, 1), (jinete, 1), (lancero, 1)], 2), gana(E, [(arquero, 1), (jinete, 1), (lancero, 1)]), !.
 testGanaA(4) :- not(ganaA((guerrillero, 2),[(arquero, 2), (lancero, 4), (jinete, 6)], 2)).
-testGanaA(5) :- not(ganaA([(arquero, 2), (jinete, 2), (guerriller o, 2)], [(lancero, 6)], 6)).
+testGanaA(5) :- not(ganaA([(arquero, 2), (jinete, 2), (guerrillero, 2)], [(lancero, 6)], 6)).
 
-cantidadTestsPueblo(4).
+cantidadTestsPueblo(5).
 testPueblo(1) :- En=[(jinete, 3)],
   puebloPara(En, A, Ed, Ej),
   costo(Ej, Ced), costo(Ej, Cej), C is Ced+Cej, A*50 >= C,
@@ -188,6 +257,10 @@ testPueblo(3) :- En=[(guerrillero, 5)],
   costo(Ej, Ced), costo(Ej, Cej), C is Ced+Cej, A*50 >= C,
   edificiosNecesarios(Ej, Ed), gana(Ej,En), !.
 testPueblo(4) :- En=[(jinete, 1), (lancero, 1), (guerrillero, 2), (arquero, 2)],
+  puebloPara(En, A, Ed, Ej),
+  costo(Ej, Ced), costo(Ej, Cej), C is Ced+Cej, A*50 >= C,
+  edificiosNecesarios(Ej, Ed), gana(Ej,En), !.
+testPueblo(5) :- En=[(jinete, 1), (lancero, 1), (arquero, 1)], A = 20,
   puebloPara(En, A, Ed, Ej),
   costo(Ej, Ced), costo(Ej, Cej), C is Ced+Cej, A*50 >= C,
   edificiosNecesarios(Ej, Ed), gana(Ej,En), !.
