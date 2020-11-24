@@ -30,46 +30,50 @@ costo(establo,      400).
 
 % Ej 1 : costo para listas (tanto de batallones como de edificios)
 % costo ( +L , -C )
-% Enunciado: Extender el predicado "costos" para que funcione con listas, tanto de batallones como de edificios.
+% Enunciado: Extender el predicado "costo" para que funcione con listas, tanto de batallones como de edificios.
 costo([],0).
 costo([Edificio|L], C) :- costo(Edificio,Precio), costo(L,Acum), C is Precio + Acum.
-costo([(Unidad,Cant)|L],C) :- costo(Unidad,Precio) ,C2 is Cant * Precio, costo(L,Acum), C is C2 + Acum.
+costo([(Unidad,Cant)|L],C) :- costo(Unidad,Precio), C2 is Cant*Precio, costo(L,Acum), C is C2 + Acum.
+
+
+
 % Ej 2 : instanciar un ejército arbitrario
 % ejercito ( -E )
 desde(X, X).
 desde(X, Y) :- N is X+1, desde(N, Y).
 armarEjercito([],0).
-armarEjercito(L,Cantidad) :- 
+armarEjercito(Ej,Cantidad) :- 
 							between(1,Cantidad,Ite),
 							unidad(X),
 							M is Cantidad - Ite,
-							armarEjercito(Lr,M),
-							append(Lr,[(X,Ite)],L).
-
-
+							armarEjercito(Ejr,M),
+							append(Ejr,[(X,Ite)],Ej).
 
 ejercito(E) :- desde(1, X), armarEjercito(E,X).
 
-% Reversibilidad: Sobre la reversibilidad de ejercito, es que es reversible,
-% simpre cuando pongamos la estructura de un ejercito, ejemplo: ejercito(E) o ejercito([(X,C)])
-% o ejercito([(lancero,3)]) ----> de vuelve true.
+% Reversibilidad: El parámetro E es reversible, siempre que pongamos la estructura válida de un ejercito,
+% ejemplo sin instanciar E: ejercito(E) o ejercito([(X,C)])
+% ejemplo instanciando E: ejercito([(lancero,3)]) ----> devuelve true, ya que que "[(lancero,3)]" es un ejercito válido.
+
+
 
 % Ej 3 : instancia una lista de edificios necesarios para el ejército
-
 edificiosNecesarios([],[]).
 edificiosNecesarios([(X,_)|L],Ed) :- edificiosNecesarios(L,Ed2), entrena(X,Y)
 									,not(member(Y,Ed2)), append([Y],Ed2,Ed).									
 edificiosNecesarios([(X,_)|L],Ed) :- edificiosNecesarios(L,Ed), entrena(X,Y), member(Y,Ed).
 
-% Reversibilidad: 
-% el parametro Ej no es reversible, por que, no devuelve instancias validas de ejercitos,
-% es decir, la cantidad de un batallon es una varible y no un valor.
-% el parametro Ed es reversible.
+% Reversibilidad:
+% El parámetro Ej NO es reversible, por que no devuelve instancias válidas de ejércitos. Es decir,
+% si no se instancia Ej, la cantidad de un batallon es una variable y no un valor.
+% El parametro Ed SI es reversible.
 
 edificiosNecesarios2(Ej,Ed) :- nonvar(Ej), edificiosNecesarios(Ej,Ed).
 edificiosNecesarios2(Ej,Ed) :- var(Ej), ejercito(Ej), edificiosNecesarios(Ej,Ed).
 
-% el parametro Ej en el predicado edificiosNecesarios2, es reversible.
+% el parametro Ej en el predicado edificiosNecesarios2, es reversible, ya que ahora sí instancia la cantidad de un batallón.
+
+
 
 % Ej 4 : índice de superioridad para unidades
 % ids ( +A , +B , -I )
@@ -94,7 +98,9 @@ ids(X,Y,I) :- unidad(X), unidad(Y), ids(Y,X,R), I is 1/R, !.
 
 
 % Reversibilidad: 
-% El parametro I es reversible.
+% El parametro I es reversible ya que puede estar instanciado o no.
+
+
 
 % Ej 5
 % ids ( +A , +B , -I )
@@ -159,8 +165,10 @@ ganaA(A,B,N) :-
 	member(A,XS).
 
 % ¿Usaron "ejercito"? ¿por qué?
-% no usamos ejercito, ya que no queriamos todos los ejercitos de todos los tamaños,
-% si no, que queriamos armar ejercitos de una cierta cantidad.
+% No usamos ejercito, ya que no queríamos todos los ejércitos de todos los tamaños si no que queriamos
+% armar ejércitos de una cierta cantidad. Por eso usamos "armarEjercito(Ej,Cantidad)".
+
+
 
 % Ej 6 : instancia un pueblo para derrotar a un ejército enemigo
 % puebloPara ( +En , ?A , -Ed , -Ej )
@@ -171,8 +179,8 @@ puebloPara(En,A,Ed,Ej) :-
 							edificiosNecesarios(Ej,Ed),
 							costo(Ej,Costoej),
 							costo(Ed,Costoed),
-							Recursos is A *50,
-							Recursos >= Costoej + Costoed.
+							Recursos is A*50,
+							Recursos >= Costoej+Costoed.
 
 puebloPara(En,A,Ed,Ej) :- 
 							var(A),						
@@ -180,15 +188,17 @@ puebloPara(En,A,Ed,Ej) :-
 							edificiosNecesarios(Ej,Ed),
 							costo(Ej,Costoej),
 							costo(Ed,Costoed),
-							Sumcosto is Costoej + Costoed,
-							Costototal is Sumcosto /50,
-							A is ceiling(Costototal).
+							Sumcosto is Costoej+Costoed,
+							Aldeanosnecesarios is Sumcosto/50,
+							A is ceiling(Aldeanosnecesarios).
 							
 
-% Ej 7 : pueblo óptimo (en cantidad de aldenos necesarios)
+
+
+% Ej 7 : pueblo óptimo (en cantidad de aldeanos necesarios)
 % puebloOptimoPara( +En , ?A , -Ed , -Ej )
 
-hayPuebloMasOptimo(En,A1,Ed,Ej,A) :-  puebloPara(En,A1,Ed,Ej), A1 < A.
+hayPuebloMasOptimo(En,A1,Ed,Ej,Aoptimo) :-  puebloPara(En,A1,Ed,Ej), A1 < Aoptimo.
 
 puebloOptimoPara(En,A,Ed,Ej) :- puebloPara(En,A,Ed,Ej), not(hayPuebloMasOptimo(En,_,Ed,Ej,A)).
 
@@ -212,6 +222,7 @@ testEjercito(1) :- ejercito([(lancero, 1), (jinete, 3)]), !.
 testEjercito(2) :- ejercito([(jinete, 5)]), !.
 testEjercito(3) :- ejercito([(guerrillero, 4), (guerrillero, 2)]), !.
 testEjercito(4) :- ejercito([(arquero, 1)]), !.
+% comentamos el test porque demora varias horas para un ejemplo tan grande.
 % testEjercito(5) :- ejercito([(arquero, 4), (guerrillero, 3), (jinete, 12), (lancero, 5)]), !.
 
 cantidadTestsEdificios(5).
