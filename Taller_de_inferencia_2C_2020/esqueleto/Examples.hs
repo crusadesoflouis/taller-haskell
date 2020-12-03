@@ -93,7 +93,7 @@ sol 36 = "{f:t0 -> t1 -> t2} >>\nzip []{t0} and []{t1} with x,y ~> f x y\n: [t2]
 sol 37 = "{f:Nat -> Nat -> Nat} >>\nzip (0 :: []{Nat}) and (succ(0) :: []{Nat}) with x,y ~> succ(f x y)\n: [Nat]"
 -- nuevos test solucion
 sol 38 = "{} >>\nzip\n(0 :: []{Nat})\nand\n((\\z:t0 -> z) :: []{t0 -> t0})\nwith\nx,y\n~>\nsucc(x)\n: [Nat]"
-sol 39 = "Cannot unify t2 -> t2 and Nat"
+sol 39 = "Cannot unify Nat and t2 -> t2"
 sol 40 = "{x:t0, y:t0} >>\nzip (x :: (y :: []{t0})) and (0 :: []{Nat}) with x,y ~> succ(y)\n: [Nat]"
 sol 41 = "{y:[Nat]} >>\nzip ((\\f:t0 -> 0) :: []{t0 -> Nat}) and y with x,y ~> succ(y)\n: [Nat]"
 sol 42 = "{g:(t0 -> t0) -> t2} >>\nzip ((\\x:t0 -> x) :: []{t0 -> t0}) and []{t1} with x,y ~> g x\n: [t2]"

@@ -32,7 +32,6 @@ tests = do runTestTT allTests
 
 allTests = test [
   "ejercicio1" ~: testEj1,
-  "ejercicio2" ~: testEj2,
   "ejercicio3" ~: testEj3
   ]
 

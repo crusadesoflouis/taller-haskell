@@ -129,57 +129,37 @@ infer' (ConsExp u v)          n = case infer' u n of
 											res@(Error _) -> res
 									res@(Error _) -> res
 									
-infer' (ZipWithExp u v x y w) n =  case infer' u n of
-									OK (n_u', (c_u', u', t_u')) ->
-										case infer' v n_u' of
-											OK (n_v', (c_v', v', t_v')) ->
-												case infer' w n_v' of             ---- rho = [tipo de x]
-													OK (n_w', (c_w', w', t_w')) -> --- t_u' =rho t_v' = phi t_w' = sigma 
-															if (elem x (domainC c_w')) && (elem y (domainC c_w')) then 
-																case mgu ([(t_u',TList(evalC c_w' x)),(t_v', TList(evalC c_w' y))] ++ (unificacionDeContextos c_u' c_v') ++ (unificacionDeContextos c_u' (removeC (removeC c_w' x) y)) ++ (unificacionDeContextos c_v' (removeC (removeC c_w' x) y))) of
-																UOK subst -> OK (n_v',
-																					(
-																					 joinC [subst <.> c_u',subst <.> c_v',subst <.> removeC (removeC c_w' x) y],
-																					 subst <.> ZipWithExp u' v' x y w',
-																					 subst <.>(TList t_w')
-																					)
-																				)
-																UError u1 u2 -> uError u1 u2
-															else
-																if elem x (domainC c_w') then
-																	case mgu ([(t_u',TList(evalC c_w' x)),(t_v', TList(nuevaTipo n_v' c_w' y))] ++ (unificacionDeContextos c_u' c_v') ++ (unificacionDeContextos c_u' (removeC (removeC c_w' x) y)) ++ (unificacionDeContextos c_v' (removeC (removeC c_w' x) y))) of
-																	UOK subst -> OK (n_v'+1,
-																					(
-																					 joinC [subst <.> c_u',subst <.> c_v',subst <.> removeC (removeC c_w' x) y],
-																					 subst <.> ZipWithExp u' v' x y w',
-																					 subst <.>(TList t_w')
-																					)
-																				)
-																	UError u1 u2 -> uError u1 u2
-																else
-																	if elem y (domainC c_w') then
-																		case mgu ([(t_u',TList (nuevaTipo n_v' c_w' x)),(t_v',TList (evalC c_w' y))] ++ (unificacionDeContextos c_u' c_v') ++ (unificacionDeContextos c_u' (removeC (removeC c_w' x) y)) ++ (unificacionDeContextos c_v' (removeC (removeC c_w' x) y))) of
-																		UOK subst -> OK (n_v'+1,
-																					(
-																					 joinC [subst <.> c_u',subst <.> c_v',subst <.> removeC (removeC c_w' x) y],
-																					 subst <.> ZipWithExp u' v' x y w',
-																					 subst <.>(TList t_w')
-																					)
-																				)
-																		UError u1 u2 -> uError u1 u2
-																	else
-																		case mgu ([(t_u',TList (nuevaTipo n_v' c_w' x)),(t_v', TList (nuevaTipo (n_v'+1) c_w' y))] ++ (unificacionDeContextos c_u' c_v') ++ (unificacionDeContextos c_u' (removeC (removeC c_w' x) y)) ++ (unificacionDeContextos c_v' (removeC (removeC c_w' x) y))) of
-																		UOK subst -> OK (n_v'+2,
-																					(
-																					 joinC [subst <.> c_u',subst <.> c_v',subst <.> removeC (removeC c_w' x) y],
-																					 subst <.> ZipWithExp u' v' x y w',
-																					 subst <.>(TList t_w')
-																					)
-																				)
-																		UError u1 u2 -> uError u1 u2
-													res@(Error _) -> res					
-											res@(Error _) -> res
-									res@(Error _) -> res		
+infer' (ZipWithExp u v x y w) n =  case infer' u n of 
+                                    OK(n_u,(c1,expresionM,rho)) ->
+                                      case infer' v n_u of
+                                        OK (n_v,(c2,expresionN,phi)) ->
+                                          case infer' w n_v of
+                                            OK (n_w,(c3,expresionO,sigma)) ->
+											  -- Elimino las variables x e y del contexto c3
+                                              let c4 = removeC (removeC c3 x) y 
+												  -- defino dos variables frescas, que van estar inicializadas
+												  -- o por el contexto c3 o por una variable libre
+                                                  t' = if elem x (domainC c3) then evalC c3 x else TVar n_w
+                                                  t'' = if elem y (domainC c3) then evalC c3 y else TVar (n_w+1)                                                  
+                                                  in case mgu ([(TList t',rho),(TList t'',phi)] 
+															  -- calculo la lista de tipos a unificar, que viene de la interseccion del contexto c2 y c1
+                                                              ++ map (\tipo -> (evalC c1 tipo,evalC c2 tipo))(filter (\variable -> elem variable (domainC c2)) (domainC c1))
+															  -- calculo la lista de tipos a unificar, que viene de la interseccion del contexto c4 y c1
+                                                              ++ map (\tipo -> (evalC c1 tipo,evalC c4 tipo))(filter (\variable -> elem variable (domainC c4)) (domainC c1))
+															  -- calculo la lista de tipos a unificar, que viene de la interseccion del contexto c4 y c2
+                                                              ++ map (\tipo -> (evalC c2 tipo,evalC c4 tipo))(filter (\variable -> elem variable (domainC c4)) (domainC c2))
+                                                              ) of
+                                                      UOK subst -> OK (n_w+2,
+                                                                              (
+                                                                              joinC [subst <.> c1,subst <.> c2,subst <.> c4],
+                                                                              subst <.> ZipWithExp expresionM expresionN x y expresionO,
+                                                                              subst <.> TList sigma
+                                                                              )
+                                                                          )
+                                                      UError u1 u2 -> uError u1 u2
+                                            res@(Error _) -> res
+                                        res@(Error _) -> res
+                                    res@(Error _) -> res		
 --------------------------------
 -- YAPA: Error de unificacion --
 --------------------------------
