@@ -38,13 +38,25 @@ superponer m1 s m2 = Paralelo[m1,Secuencia (Silencio s) (m2)]
 canon :: Duracion->Integer->Melodia->Melodia
 canon duracion repeticion m1 = foldNat m1 (superponer  m1 duracion) (repeticion-1)
 
+-- foldr1 : (a -> a -> a) -> [a] -> a
+
 secuenciar :: [Melodia] -> Melodia --Se asume que la lista no es vacía.
-secuenciar = foldr1 (Secuencia)
+secuenciar = foldr1 Secuencia 
+
+-- secuenciar = foldr1 (\x rec Secuencia x rec)
+
+-- Secuencia x (foldr1 (\x rec Secuencia x rec))
+-- Secuencia x (Secuencia x (foldr1 (\x rec Secuencia x rec))
+-- hasta que consume toda la secuencia
 
 -- Ejercicio 2
 canonInfinito :: Duracion->Melodia->Melodia
 canonInfinito d m = foldr (\_ rec -> superponer m d rec) m [0..]
 
+-- Paralelo[m,Secuencia (Silencio d) (foldr (\_ rec -> superponer m d rec) m [1..])]
+-- Paralelo[m,Secuencia (Silencio d) (Paralelo[m,Secuencia (Silencio d) (.....)]]
+
+-- pregunta por que no anda  foldr1 (\_ rec -> superponer m d rec) [0..]
 
 -- Ejercicio 3
 foldMelodia :: (Duracion -> b) -> (Tono -> Duracion -> b) -> (b -> b -> b) -> ([b]->b) -> Melodia -> b
@@ -64,9 +76,9 @@ mapMelodia f = foldMelodia (Silencio) (\t d -> Nota (f t) d ) (Secuencia) (Paral
 transportar :: Integer -> Melodia -> Melodia
 transportar n = mapMelodia ((+) n)
 
+
 duracionTotal :: Melodia->Duracion
 duracionTotal = foldMelodia (id) (\t d -> d) (+) (foldr (+) 0)
-
 
 
 cambiarVelocidad :: Float->Melodia->Melodia--Sugerencia: usar round y fromIntegral
