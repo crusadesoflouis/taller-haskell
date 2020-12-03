@@ -118,7 +118,7 @@ infer' (ConsExp u v)          n = case infer' u n of
 										case infer' v n_u' of
 											OK (n_v', (c_v', v', t_v')) ->
 												case mgu ([(t_v',TList t_u')] ++ (unificacionDeContextos c_u' c_v')) of
-													UOK subst -> OK (n_v'+1,
+													UOK subst -> OK (n_v',
 																		(
 																		 joinC [subst <.> c_u',subst <.> c_v'],
 																		 subst <.> ConsExp u' v',
@@ -143,11 +143,11 @@ infer' (ZipWithExp u v x y w) n =  case infer' u n of
                                                   t'' = if elem y (domainC c3) then evalC c3 y else TVar (n_w+1)                                                  
                                                   in case mgu ([(TList t',rho),(TList t'',phi)] 
 															  -- calculo la lista de tipos a unificar, que viene de la interseccion del contexto c2 y c1
-                                                              ++ map (\tipo -> (evalC c1 tipo,evalC c2 tipo))(filter (\variable -> elem variable (domainC c2)) (domainC c1))
+                                                              ++ map (\variable -> (evalC c1 variable,evalC c2 variable))(filter (\variable -> elem variable (domainC c2)) (domainC c1))
 															  -- calculo la lista de tipos a unificar, que viene de la interseccion del contexto c4 y c1
-                                                              ++ map (\tipo -> (evalC c1 tipo,evalC c4 tipo))(filter (\variable -> elem variable (domainC c4)) (domainC c1))
+                                                              ++ map (\variable -> (evalC c1 variable,evalC c4 variable))(filter (\variable -> elem variable (domainC c4)) (domainC c1))
 															  -- calculo la lista de tipos a unificar, que viene de la interseccion del contexto c4 y c2
-                                                              ++ map (\tipo -> (evalC c2 tipo,evalC c4 tipo))(filter (\variable -> elem variable (domainC c4)) (domainC c2))
+                                                              ++ map (\variable -> (evalC c2 variable,evalC c4 variable))(filter (\variable -> elem variable (domainC c4)) (domainC c2))
                                                               ) of
                                                       UOK subst -> OK (n_w+2,
                                                                               (
